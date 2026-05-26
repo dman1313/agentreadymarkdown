@@ -152,7 +152,7 @@ export default function App() {
   return (
     <div className="container">
       <header className="header">
-        <h1>AgentReady</h1>
+        <h1>AgentReadyMarkdown</h1>
         <p>Prepare your data and documents for AI consumption seamlessly.</p>
       </header>
 

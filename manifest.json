@@ -1,0 +1,38 @@
+{
+  "name": "agentready-v1-sdd-package",
+  "product": "AgentReady",
+  "company": "HumanGoodAI",
+  "version": "1.2",
+  "primary_file": "AGENTREADY_V1_SDD_MASTER.md",
+  "repository_name": "agentready-knowledge-packager",
+  "tagline": "Is your data agent ready?",
+  "core_flow": "Upload files -> Convert -> Preview Markdown -> Download AgentReady zip",
+  "notes": [
+    "Designed for non-technical organization staff first.",
+    "Build CLI first, then web app.",
+    "First local build supports TXT, Markdown, CSV, and DOCX before PDF/XLSX.",
+    "No AI document processing, anonymization, accounts, billing, or persistent workspaces in V1.",
+    "Temporary processing and deletion are core privacy requirements.",
+    "Avoid GPL dependencies unless explicitly approved.",
+    "AgentReady credits, donate credits, hosted beta access codes, and sensitive-file mode are future or beta tracks as specified in docs/21."
+  ],
+  "package_name": "agentready-v1-sdd-v2style-package",
+  "updated": "2026-05-26",
+  "added_from_teamconnect_v2_pattern": [
+    "docs/SUMMARY.md",
+    "docs/00_OVERVIEW.md through docs/20_BUILD_ROADMAP.md",
+    "docs/adr/",
+    "docs/prompts/",
+    "docs/GLOSSARY.md",
+    "AGENTREADY_SDD_AT_A_GLANCE.md"
+  ],
+  "source_of_truth_order": [
+    "docs/SUMMARY.md",
+    "docs/00_OVERVIEW.md through docs/20_BUILD_ROADMAP.md",
+    "docs/21_DECISIONS_Q107_Q261.md",
+    "docs/adr/",
+    "AGENTREADY_V1_SDD_MASTER.md",
+    "examples/"
+  ],
+  "latest_decision_addendum": "docs/21_DECISIONS_Q107_Q261.md"
+}

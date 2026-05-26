@@ -1,0 +1,38 @@
+pub mod csv;
+pub mod docx;
+pub mod markdown;
+pub mod pdf;
+pub mod txt;
+
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
+
+use encoding_rs_io::DecodeReaderBytesBuilder;
+
+use crate::models::ErrorCode;
+
+pub struct ConversionResult {
+    pub markdown: String,
+    pub warning: Option<String>,
+    pub raw_data: Option<Vec<u8>>,
+}
+
+/// Reads a text file, guessing the encoding and stripping BOM.
+pub fn read_text_file(path: &Path) -> Result<String, ErrorCode> {
+    let file = File::open(path).map_err(|_| ErrorCode::ConversionFailed)?;
+    let mut decoder = DecodeReaderBytesBuilder::new()
+        .bom_override(true)
+        .build(file);
+
+    let mut content = String::new();
+    decoder
+        .read_to_string(&mut content)
+        .map_err(|_| ErrorCode::ConversionFailed)?;
+
+    if content.trim().is_empty() {
+        return Err(ErrorCode::NoReadableText);
+    }
+
+    Ok(content)
+}

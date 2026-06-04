@@ -10,8 +10,9 @@ use std::path::Path;
 
 use encoding_rs_io::DecodeReaderBytesBuilder;
 
-use crate::models::ErrorCode;
+use crate::models::AgentReadyError;
 
+#[derive(Debug, PartialEq)]
 pub struct ConversionResult {
     pub markdown: String,
     pub warning: Option<String>,
@@ -19,8 +20,8 @@ pub struct ConversionResult {
 }
 
 /// Reads a text file, guessing the encoding and stripping BOM.
-pub fn read_text_file(path: &Path) -> Result<String, ErrorCode> {
-    let file = File::open(path).map_err(|_| ErrorCode::ConversionFailed)?;
+pub fn read_text_file(path: &Path) -> Result<String, AgentReadyError> {
+    let file = File::open(path).map_err(AgentReadyError::Io)?;
     let mut decoder = DecodeReaderBytesBuilder::new()
         .bom_override(true)
         .build(file);
@@ -28,10 +29,12 @@ pub fn read_text_file(path: &Path) -> Result<String, ErrorCode> {
     let mut content = String::new();
     decoder
         .read_to_string(&mut content)
-        .map_err(|_| ErrorCode::ConversionFailed)?;
+        .map_err(AgentReadyError::Io)?;
 
     if content.trim().is_empty() {
-        return Err(ErrorCode::NoReadableText);
+        return Err(AgentReadyError::UserFacing(
+            crate::models::ErrorCode::NoReadableText,
+        ));
     }
 
     Ok(content)

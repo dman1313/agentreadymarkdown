@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AgentReady</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: rgba(255,255,255,0.06);
+      --border: rgba(255,255,255,0.12);
+      --text: #e7ecf3;
+      --muted: #9aa8b8;
+      --primary: #5b9fd4;
+      --success: #3dba7a;
+      --warn: #e6b84a;
+      --error: #e06c6c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .container { max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+    h1 { margin: 0; font-size: 1.75rem; }
+    .subtitle { color: var(--muted); margin: 0.25rem 0 1.5rem; font-size: 0.9rem; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      backdrop-filter: blur(8px);
+    }
+    .tagline { font-size: 1.1rem; font-weight: 600; margin: 0 0 0.5rem; }
+    .description { color: var(--muted); margin: 0 0 1.25rem; font-size: 0.95rem; }
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 2.5rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .upload-zone:hover, .upload-zone.drag-active {
+      border-color: var(--primary);
+      background: rgba(91,159,212,0.08);
+    }
+    .upload-zone h2 { margin: 0.5rem 0 0.25rem; font-size: 1.1rem; }
+    .upload-zone p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+    .info { margin-top: 1.25rem; font-size: 0.85rem; color: var(--muted); }
+    .info strong { color: var(--text); }
+    .info div { margin-top: 0.35rem; }
+    .hidden { display: none !important; }
+    .center { text-align: center; padding: 3rem 1rem; }
+    .spinner {
+      width: 40px; height: 40px; margin: 0 auto 1rem;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .progress-bar {
+      height: 6px; background: var(--border); border-radius: 3px;
+      margin-top: 1rem; overflow: hidden;
+    }
+    .progress-bar > div {
+      height: 100%; background: var(--primary);
+      transition: width 0.2s ease;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
+    th, td { text-align: left; padding: 0.6rem 0.4rem; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.8rem;
+    }
+    .badge-good { background: rgba(61,186,122,0.2); color: var(--success); }
+    .badge-partial { background: rgba(230,184,74,0.2); color: var(--warn); }
+    .badge-fail { background: rgba(224,108,108,0.2); color: var(--error); }
+    .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.9rem;
+      border: none; cursor: pointer; text-decoration: none;
+    }
+    .btn-primary { background: var(--primary); color: #0f1419; font-weight: 600; }
+    .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-link { background: none; border: none; color: var(--primary); cursor: pointer; padding: 0; font-size: inherit; }
+    .preview-body {
+      white-space: pre-wrap; font-family: ui-monospace, monospace;
+      font-size: 0.85rem; max-height: 60vh; overflow: auto;
+      background: rgba(0,0,0,0.25); padding: 1rem; border-radius: 8px;
+      margin-top: 1rem;
+    }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>AgentReady</h1>
+      <p class="subtitle">by HumanGoodAI</p>
+    </header>
+
+    <section id="view-upload" class="panel">
+      <p class="tagline">Is your data agent ready?</p>
+      <p class="description">
+        Upload your files, preview clean Markdown, and download an agent-ready zip.
+        Everything runs on your machine — no cloud processing.
+      </p>
+      <div id="drop-zone" class="upload-zone" tabindex="0" role="button" aria-label="Upload files">
+        <h2>Upload your files</h2>
+        <p>Drag and drop, or click to browse</p>
+        <input id="file-input" type="file" multiple accept=".txt,.md,.csv,.docx,.pdf" hidden />
+      </div>
+      <div class="info">
+        <div><strong>Supported:</strong> TXT, Markdown, CSV, DOCX, PDF</div>
+        <div><strong>Limits:</strong> Up to 25 files, 50 MB each</div>
+        <div>Processed locally in Rust — nothing leaves your computer.</div>
+      </div>
+    </section>
+
+    <section id="view-converting" class="panel center hidden">
+      <div class="spinner" aria-hidden="true"></div>
+      <h2>Converting…</h2>
+      <p id="convert-status">Starting</p>
+      <div class="progress-bar"><div id="progress-fill" style="width:0%"></div></div>
+    </section>
+
+    <section id="view-results" class="panel hidden">
+      <div class="flex-between">
+        <h2 style="margin:0">Results</h2>
+        <div class="actions">
+          <button type="button" class="btn btn-secondary" id="btn-start-over">Start over</button>
+          <a id="btn-download" class="btn btn-primary" href="#">Download zip</a>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>File</th><th>Type</th><th>Status</th><th></th></tr></thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </section>
+
+    <section id="view-preview" class="panel hidden">
+      <div class="flex-between">
+        <h2 id="preview-title" style="margin:0">Preview</h2>
+        <div class="actions">
+          <button type="button" class="btn btn-secondary" id="btn-back-results">Back</button>
+          <button type="button" class="btn btn-secondary" id="btn-copy">Copy</button>
+        </div>
+      </div>
+      <pre id="preview-content" class="preview-body"></pre>
+    </section>
+  </div>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const views = ['upload', 'converting', 'results', 'preview'];
+    let jobId = null;
+    let pollTimer = null;
+    let lastResult = null;
+
+    function showView(name) {
+      views.forEach((v) => $('view-' + v).classList.toggle('hidden', v !== name));
+    }
+
+    const dropZone = $('drop-zone');
+    const fileInput = $('file-input');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+    });
+    ['dragenter', 'dragover'].forEach((ev) => {
+      dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.add('drag-active'); });
+    });
+    ['dragleave', 'drop'].forEach((ev) => {
+      dropZone.addEventListener(ev, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-active');
+        if (ev === 'drop' && e.dataTransfer.files.length) upload(e.dataTransfer.files);
+      });
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) upload(fileInput.files);
+    });
+
+    async function upload(files) {
+      showView('converting');
+      $('convert-status').textContent = 'Uploading…';
+      $('progress-fill').style.width = '0%';
+      const fd = new FormData();
+      for (const f of files) fd.append('file', f);
+      try {
+        const res = await fetch('/api/jobs', { method: 'POST', body: fd });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || res.statusText);
+        }
+        const data = await res.json();
+        jobId = data.id;
+        pollJob();
+      } catch (e) {
+        alert('Upload failed: ' + e.message);
+        showView('upload');
+      }
+    }
+
+    function pollJob() {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(async () => {
+        try {
+          const res = await fetch('/api/jobs/' + jobId);
+          const data = await res.json();
+          if (data.status === 'Converting' && data.progress) {
+            const { done, total, current_file } = data.progress;
+            const pct = total ? Math.round((done / total) * 100) : 0;
+            $('progress-fill').style.width = pct + '%';
+            $('convert-status').textContent = current_file
+              ? `Processing ${current_file} (${done}/${total})`
+              : `Processing (${done}/${total})`;
+          }
+          if (data.status === 'Completed') {
+            clearInterval(pollTimer);
+            lastResult = data.result;
+            renderResults(data.result);
+            showView('results');
+          }
+          if (data.status === 'Failed') {
+            clearInterval(pollTimer);
+            alert(data.error || 'Conversion failed');
+            showView('upload');
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }, 400);
+    }
+
+    function badge(status) {
+      if (status === 'good') return '<span class="badge badge-good">Good</span>';
+      if (status === 'partial') return '<span class="badge badge-partial">Partial</span>';
+      return '<span class="badge badge-fail">Failed</span>';
+    }
+
+    function renderResults(result) {
+      const tbody = $('results-body');
+      tbody.innerHTML = '';
+      $('btn-download').href = '/api/jobs/' + jobId + '/download';
+      for (const f of result.files) {
+        const tr = document.createElement('tr');
+        const canPreview = f.output_file && (f.status === 'good' || f.status === 'partial');
+        tr.innerHTML =
+          '<td>' + escapeHtml(f.source_file) + '</td>' +
+          '<td>' + escapeHtml(f.source_type) + '</td>' +
+          '<td>' + badge(f.status) + '</td>' +
+          '<td>' + (canPreview
+            ? '<button type="button" class="btn-link" data-out="' + encodeAttr(f.output_file) + '" data-name="' + encodeAttr(f.source_file) + '">Preview</button>'
+            : '—') + '</td>';
+        tbody.appendChild(tr);
+      }
+      tbody.querySelectorAll('[data-out]').forEach((btn) => {
+        btn.addEventListener('click', () => preview(btn.dataset.out, btn.dataset.name));
+      });
+    }
+
+    async function preview(outputFile, name) {
+      const q = new URLSearchParams({ path: outputFile });
+      const res = await fetch('/api/jobs/' + jobId + '/preview?' + q);
+      const text = await res.text();
+      $('preview-title').textContent = name;
+      $('preview-content').textContent = text;
+      showView('preview');
+    }
+
+    $('btn-back-results').addEventListener('click', () => showView('results'));
+    $('btn-copy').addEventListener('click', async () => {
+      await navigator.clipboard.writeText($('preview-content').textContent);
+      $('btn-copy').textContent = 'Copied';
+      setTimeout(() => { $('btn-copy').textContent = 'Copy'; }, 1500);
+    });
+    $('btn-start-over').addEventListener('click', async () => {
+      if (!confirm('Start over? Current export will be deleted.')) return;
+      if (jobId) await fetch('/api/jobs/' + jobId, { method: 'DELETE' }).catch(() => {});
+      jobId = null;
+      lastResult = null;
+      fileInput.value = '';
+      showView('upload');
+    });
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    function encodeAttr(s) { return String(s).replace(/"/g, '&quot;'); }
+  </script>
+</body>
+</html>

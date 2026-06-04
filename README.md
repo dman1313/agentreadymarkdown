@@ -23,6 +23,27 @@ The spec is the source of truth. If code disagrees with the spec, update one of 
 
 Latest public product wording: AgentReady helps convert your documents and data into a clean format that is easier for AI agents to read.
 
+## Run locally (Rust-only UI)
+
+```bash
+cargo build --release
+cargo run -- serve
+```
+
+Then open http://127.0.0.1:3000 — no Node.js required. CLI-only usage:
+
+```bash
+cargo run -- convert ./my-files --output ./agentready-output
+```
+
+## GitHub auth
+
+If `gh auth status` shows an invalid keyring token:
+
+```bash
+./scripts/gh-auth.sh
+```
+
 ## Existing package notes
 
 The original generated SDD files are preserved under `specs/`, `prompts/`, `skills/`, `research-notes/`, and `examples/`.

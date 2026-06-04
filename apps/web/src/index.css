@@ -10,6 +10,8 @@
   --success-bg: rgba(16, 185, 129, 0.1);
   --error: #f43f5e;
   --error-bg: rgba(244, 63, 94, 0.1);
+  --warning: #f59e0b;
+  --warning-bg: rgba(245, 158, 11, 0.1);
   --border-radius-lg: 24px;
   --border-radius-md: 16px;
   --border-radius-sm: 8px;
@@ -62,9 +64,30 @@ h2 {
   margin-bottom: 1rem;
 }
 
+h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text-muted);
+}
+
 p {
   color: var(--text-muted);
   font-size: 1.05rem;
+}
+
+.tagline {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-main);
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+
+.description {
+  text-align: center;
+  max-width: 540px;
+  margin: 0 auto 2rem;
 }
 
 /* Buttons */
@@ -111,9 +134,14 @@ p {
   background: var(--panel-bg);
 }
 
+.btn-secondary.active {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--primary);
+}
+
 /* Layout Utilities */
 .container {
-  max-width: 800px;
+  max-width: 960px;
   margin: 0 auto;
   padding: 4rem 2rem;
   width: 100%;
@@ -121,7 +149,7 @@ p {
 
 .header {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
 }
 
 .flex-center {
@@ -140,7 +168,7 @@ p {
 .upload-zone {
   border: 2px dashed rgba(255, 255, 255, 0.1);
   border-radius: var(--border-radius-lg);
-  padding: 5rem 2rem;
+  padding: 4rem 2rem;
   text-align: center;
   cursor: pointer;
   transition: var(--transition);
@@ -176,6 +204,39 @@ p {
   filter: drop-shadow(0 0 12px rgba(129, 140, 248, 0.4));
 }
 
+/* Upload Info */
+.upload-info {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.info-row {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.info-row strong {
+  color: var(--text-main);
+}
+
+.info-row.privacy {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: var(--border-radius-sm);
+  color: var(--success);
+  font-size: 0.875rem;
+}
+
+/* User message below status badge */
+.user-message {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
 /* Table */
 .results-table {
   width: 100%;
@@ -205,6 +266,7 @@ p {
 .badge {
   display: inline-flex;
   align-items: center;
+  gap: 0.3rem;
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.875rem;
@@ -222,8 +284,64 @@ p {
 }
 
 .badge-partial {
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+/* Preview Layout */
+.preview-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 1rem;
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .preview-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.preview-sidebar {
+  padding: 1.25rem;
+}
+
+.file-list {
+  list-style: none;
+  padding: 0;
+}
+
+.file-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  transition: var(--transition);
+}
+
+.file-list-item:hover {
+  background: var(--panel-bg);
+  color: var(--text-main);
+}
+
+.file-list-item.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--primary-hover);
+}
+
+.file-list-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.warning-icon {
+  color: var(--warning);
+  flex-shrink: 0;
 }
 
 /* Markdown Preview */
@@ -254,7 +372,40 @@ p {
   width: 100%;
   margin: 1rem 0;
 }
+
 .preview-container th, .preview-container td {
   border: 1px solid #444;
   padding: 0.5rem;
+}
+
+/* Spinner animation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Branding */
+.subtitle {
+  font-size: 1rem;
+  color: var(--text-muted);
+  margin-bottom: 0;
+}
+
+.footer {
+  text-align: center;
+  padding: 3rem 0 1rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.footer p {
+  font-size: 0.85rem;
+}
+
+/* Focus styles for keyboard navigation */
+.upload-zone:focus-visible,
+.file-list-item:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }

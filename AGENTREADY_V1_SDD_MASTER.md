@@ -69,6 +69,10 @@ Required V1 input types:
 | Text | `.txt` | Lightly convert to Markdown |
 | Markdown | `.md`, `.markdown` | Preserve structure and normalize only when safe |
 | CSV | `.csv` | Convert to Markdown table and preserve CSV copy |
+| EPUB | `.epub` | Spine-ordered HTML to Markdown; DRM-free only |
+| MOBI | `.mobi` | Kindle PDB via Rust parser; DRM-free only |
+| AZW3 | `.azw3` | Kindle KF8; prefers KF8 section when present |
+| AZW | `.azw` | Kindle PDB routed via same pipeline as MOBI/AZW3 |
 | XLSX | `.xlsx` | Convert sheets/tables to Markdown and preserve CSV copies |
 
 ### V1 file limits
@@ -99,7 +103,7 @@ AgentReady V1 shall not:
 13. Send documents to an AI model for summaries.
 14. Support OCR for scanned PDFs.
 15. Process audio files.
-16. Process EPUB files.
+16. Remove DRM or decrypt password-protected ebooks.
 17. Ask users for passwords to unlock encrypted files.
 18. Execute macros, scripts, or active file content.
 19. Copy code, assets, tests, prompts, or implementation details from GPL projects.

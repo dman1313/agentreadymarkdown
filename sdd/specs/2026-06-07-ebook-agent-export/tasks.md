@@ -66,14 +66,15 @@
 
 ### Task 3.1: Fixtures doc
 **Files:** Create `examples/sample-input/ebooks/README.md`
-- [ ] Document Calibre/public-domain workflow for DRM-free test ebooks
-- [ ] State: do not commit copyrighted books
+- [x] Document Calibre/public-domain workflow for DRM-free test ebooks
+- [x] State: do not commit copyrighted books
+- [x] Committed `minimal.epub` fixture for automated tests
 
 ### Task 3.2: CLI integration test
 **Files:** `crates/agentready-cli/tests/integration.rs`
-- [ ] Add EPUB round-trip test using in-memory or committed minimal epub
-- [ ] Optional: `#[ignore]` MOBI test with instructions
-- [ ] Verify: `cargo test -p agentready --test integration`
+- [x] Add EPUB round-trip test using committed `minimal.epub`
+- [x] Optional: `#[ignore]` MOBI test with `AGENTREADY_MOBI_SAMPLE` env
+- [x] Verify: `cargo test -p agentready --test integration`
 
 ---
 
@@ -81,8 +82,9 @@
 
 ### Task 4.1: Align product SDD
 **Files:** `README.md`, `docs/08_CONVERSION_PIPELINE.md`, `docs/SUMMARY.md`, `AGENTREADY_V1_SDD_MASTER.md` (non-goals section)
-- [ ] MOBI/AZW3 in supported table; legal unchanged
-- [ ] Verify: grep README for "not in V1" — MOBI/AZW removed
+- [x] MOBI/AZW3 in supported table; legal unchanged
+- [x] Verify: grep README for "not in V1" — MOBI/AZW removed
+- [x] `AGENTREADY_V1_SDD_MASTER.md` — EPUB/ebooks in supported types; DRM removal in non-goals
 
 ### Task 4.2: Manual QA matrix
 **Files:** none (report in session-end / ACTIVITY)

@@ -2,6 +2,10 @@
 
 Do **not** commit copyrighted ebooks to this repository.
 
+## Committed fixture
+
+- `minimal.epub` — tiny DRM-free EPUB used by `cargo test -p agentready --test integration convert_minimal_epub`.
+
 ## MOBI / AZW3 / AZW / EPUB manual testing
 
 1. Use **DRM-free** files you own (Calibre “DeDRM” is out of scope — buy DRM-free or strip DRM outside AgentReady).

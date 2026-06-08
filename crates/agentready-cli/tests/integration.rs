@@ -170,3 +170,56 @@ fn fixture_structure_is_correct() {
     assert_eq!(manifest["version"], "1.0");
     assert_eq!(manifest["generated_by"], "agentready-v1");
 }
+
+#[test]
+fn convert_minimal_epub() {
+    let bin = agentready_bin();
+    let root = project_root();
+    let input = root.join("examples/sample-input/ebooks/minimal.epub");
+
+    let dir = TempDir::new().unwrap();
+    let output = dir.path().join("output");
+
+    let status = Command::new(&bin)
+        .args(["convert", input.to_str().unwrap(), "--output", output.to_str().unwrap()])
+        .current_dir(&root)
+        .status()
+        .unwrap();
+    assert!(status.success(), "EPUB convert should exit 0");
+
+    let docs_dir = output.join("documents");
+    assert!(docs_dir.exists(), "documents/ folder missing");
+
+    let mut found_content = false;
+    for entry in fs::read_dir(&docs_dir).unwrap() {
+        let content = fs::read_to_string(entry.unwrap().path()).unwrap();
+        if content.contains("Chapter One") && content.contains("Hello ebook reader") {
+            found_content = true;
+            break;
+        }
+    }
+    assert!(found_content, "EPUB markdown should contain chapter text");
+    assert!(output.join("README.md").exists(), "README.md missing");
+    assert!(output.join("index.md").exists(), "index.md missing");
+}
+
+/// Run manually when you have a DRM-free MOBI on disk:
+/// `AGENTREADY_MOBI_SAMPLE=/path/to/book.mobi cargo test -p agentready convert_mobi_sample -- --ignored`
+#[test]
+#[ignore = "requires AGENTREADY_MOBI_SAMPLE env pointing to a local DRM-free .mobi"]
+fn convert_mobi_sample() {
+    let sample = std::env::var("AGENTREADY_MOBI_SAMPLE").expect("set AGENTREADY_MOBI_SAMPLE");
+    let bin = agentready_bin();
+    let root = project_root();
+
+    let dir = TempDir::new().unwrap();
+    let output = dir.path().join("output");
+
+    let status = Command::new(&bin)
+        .args(["convert", &sample, "--output", output.to_str().unwrap()])
+        .current_dir(&root)
+        .status()
+        .unwrap();
+    assert!(status.success());
+    assert!(output.join("documents").exists());
+}

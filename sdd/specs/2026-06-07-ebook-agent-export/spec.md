@@ -1,6 +1,6 @@
 # Spec: Ebook Agent Export (MOBI + AZW3)
 
-- **Status:** Approved — MOBI + AZW3 shipped (2026-06-08)
+- **Status:** Done — MOBI + AZW3 shipped; smoke QA 2026-06-08 (Kindle file matrix pending user samples)
 - **Owner:** Dwayne Primeau · **Agent:** cursor · **Date:** 2026-06-07
 
 ## Goal

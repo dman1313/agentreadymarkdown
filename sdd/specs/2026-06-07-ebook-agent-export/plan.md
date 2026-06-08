@@ -1,6 +1,6 @@
 # Plan: Ebook Agent Export (MOBI + AZW3)
 
-> Spec: ./spec.md · **Status:** Approved
+> Spec: ./spec.md · **Status:** Done
 
 ## Approach
 

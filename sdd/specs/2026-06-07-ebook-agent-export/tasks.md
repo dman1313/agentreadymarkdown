@@ -17,6 +17,7 @@
 **Files:** none
 - [x] `./scripts/serve.sh --no-open --port 3099` (2026-06-08, port 3099)
 - [x] Upload DRM-free EPUB + TXT via API — preview readable (`Chapter One`), zip downloads (2312 bytes)
+- [x] Text PDF — `minimal.pdf` CLI + UI API **Good** (`Hello PDF reader.`)
 - [x] Confirm legal notice visible on upload page (2 `.legal-notice` blocks + Full notice link)
 
 ---

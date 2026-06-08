@@ -2,9 +2,10 @@
 
 Do **not** commit copyrighted ebooks to this repository.
 
-## Committed fixture
+## Committed fixtures
 
-- `minimal.epub` — tiny DRM-free EPUB used by `cargo test -p agentready --test integration convert_minimal_epub`.
+- `minimal.epub` — tiny DRM-free EPUB (`convert_minimal_epub` integration test).
+- `minimal.pdf` — tiny text PDF (`convert_minimal_pdf` integration test).
 
 ## MOBI / AZW3 / AZW / EPUB manual testing
 

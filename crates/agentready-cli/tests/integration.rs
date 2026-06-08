@@ -172,6 +172,29 @@ fn fixture_structure_is_correct() {
 }
 
 #[test]
+fn convert_minimal_pdf() {
+    let bin = agentready_bin();
+    let root = project_root();
+    let input = root.join("examples/sample-input/ebooks/minimal.pdf");
+
+    let dir = TempDir::new().unwrap();
+    let output = dir.path().join("output");
+
+    let status = Command::new(&bin)
+        .args(["convert", input.to_str().unwrap(), "--output", output.to_str().unwrap()])
+        .current_dir(&root)
+        .status()
+        .unwrap();
+    assert!(status.success(), "PDF convert should exit 0");
+
+    let doc = output.join("documents/minimal-pdf.md");
+    assert!(doc.exists(), "minimal-pdf.md missing");
+    let content = fs::read_to_string(doc).unwrap();
+    assert!(content.contains("Hello PDF reader"));
+    assert!(content.contains("AgentReady text extraction smoke test"));
+}
+
+#[test]
 fn convert_minimal_epub() {
     let bin = agentready_bin();
     let root = project_root();

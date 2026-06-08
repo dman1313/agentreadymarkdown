@@ -1,3 +1,4 @@
+pub mod agent_markdown;
 pub mod models;
 pub mod validation;
 pub mod converters;

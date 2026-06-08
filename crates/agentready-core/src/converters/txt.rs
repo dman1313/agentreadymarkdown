@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use crate::converters::plain_text_to_markdown::page_text_to_markdown;
 use crate::converters::{read_text_file, ConversionResult};
 use crate::models::AgentReadyError;
 
@@ -7,7 +8,7 @@ pub fn convert_txt(path: &Path) -> Result<ConversionResult, AgentReadyError> {
     let content = read_text_file(path)?;
 
     Ok(ConversionResult {
-        markdown: content,
+        markdown: page_text_to_markdown(&content),
         warning: None,
         raw_data: None,
     })
@@ -31,7 +32,7 @@ mod tests {
     fn converts_basic_text() {
         let (dir, path) = write_temp_file(b"Hello world", "txt");
         let result = convert_txt(&path).unwrap();
-        assert_eq!(result.markdown, "Hello world");
+        assert!(result.markdown.contains("Hello world"));
         drop(dir);
     }
 

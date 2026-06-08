@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::time::Duration;
 
+use crate::agent_markdown;
 use crate::converters;
 use crate::export::create_export;
 use crate::models::{
@@ -169,7 +170,7 @@ pub fn run_job(
                 };
                 results.push(ConvertedFile {
                     result: file_result,
-                    markdown: res.markdown,
+                    markdown: agent_markdown::normalize_for_agents(&res.markdown),
                     raw_data: res.raw_data,
                 });
             }

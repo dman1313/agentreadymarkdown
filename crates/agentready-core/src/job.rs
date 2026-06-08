@@ -217,6 +217,7 @@ fn convert_with_timeout(
             "docx" => converters::docx::convert_docx(&path),
             "pdf" => converters::pdf::convert_pdf(&path),
             "epub" => converters::epub::convert_epub(&path),
+            "mobi" => converters::mobi::convert_mobi(&path),
             _ => Err(AgentReadyError::UserFacing(ErrorCode::UnsupportedFile)),
         };
         let _ = tx.send(result);

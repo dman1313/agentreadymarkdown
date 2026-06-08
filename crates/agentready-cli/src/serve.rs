@@ -145,7 +145,7 @@ async fn create_job(
             .unwrap_or("")
             .to_lowercase();
 
-        if !matches!(ext.as_str(), "txt" | "md" | "csv" | "docx" | "pdf" | "epub") {
+        if !matches!(ext.as_str(), "txt" | "md" | "csv" | "docx" | "pdf" | "epub" | "mobi") {
             skipped_type += 1;
             continue;
         }
@@ -181,7 +181,7 @@ async fn create_job(
         } else if skipped_large > 0 {
             format!("File(s) exceed the {MAX_FILE_SIZE_MB} MB limit.")
         } else if skipped_type > 0 {
-            "Unsupported file type. Use TXT, Markdown, CSV, DOCX, PDF, or EPUB.".to_string()
+            "Unsupported file type. Use TXT, Markdown, CSV, DOCX, PDF, EPUB, or MOBI.".to_string()
         } else {
             "No supported files uploaded.".to_string()
         };

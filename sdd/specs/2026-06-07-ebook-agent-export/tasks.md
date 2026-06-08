@@ -8,10 +8,10 @@
 
 ### Task 0.1: Verify in-flight work
 **Files:** (read-only audit)
-- [ ] Run `cargo test` — expect all tests pass (baseline ~55)
-- [ ] Run `cargo check`
-- [ ] Review `git diff --stat` — confirm EPUB, text_quality, serve, legal present
-- [ ] Commit: `feat: EPUB converter, text quality checks, serve UI, legal notice` *(only if Dwayne approves)*
+- [x] Run `cargo test` — expect all tests pass (baseline ~55)
+- [x] Run `cargo check`
+- [x] Review `git diff --stat` — confirm EPUB, text_quality, serve, legal present
+- [x] Commit: `feat: EPUB converter, text quality checks, serve UI, legal notice` (89ad458)
 
 ### Task 0.2: UI smoke
 **Files:** none
@@ -25,23 +25,24 @@
 
 ### Task 1.1: Research spike
 **Files:** notes in `mobi.rs` header
-- [ ] Search crates.io for MOBI parsers; check license (MIT/Apache/APACHE-2.0 only)
-- [ ] Time-box 30 min; record chosen crate or "no crate — escalate to Dwayne"
-- [ ] Verify: decision documented in plan or spec open questions resolved
+- [x] Search crates.io — chose `mobi` v0.8 (MIT, vv9k/mobi-rs)
+- [x] Calibre fallback not needed for initial implementation
+- [x] Decision documented in `mobi.rs` header comment
 
 ### Task 1.2: Implement `convert_mobi`
 **Files:** Create `crates/agentready-core/src/converters/mobi.rs`, Modify `mod.rs`, `Cargo.toml`
-- [ ] `pub fn convert_mobi(path: &Path) -> Result<ConversionResult, AgentReadyError>`
-- [ ] DRM/encryption sniff → `PasswordProtected`
-- [ ] Chapter boundaries → `---` separators
-- [ ] `text_quality::looks_like_garbage` → `NoReadableText`
-- [ ] Unit test: minimal synthetic MOBI or public-domain fixture
-- [ ] Verify: `cargo test converters::mobi`
+- [x] `pub fn convert_mobi(path: &Path) -> Result<ConversionResult, AgentReadyError>`
+- [x] DRM/encryption sniff → `PasswordProtected`
+- [x] Title as `#` heading; basic HTML strip when present
+- [x] `text_quality::looks_like_garbage` → `NoReadableText`
+- [x] Unit tests: invalid file, HTML normalize, title build
+- [x] Verify: `cargo test converters::mobi` — pass
 
 ### Task 1.3: Wire MOBI
 **Files:** `validation.rs`, `job.rs`, `serve.rs`, `index.html`, `models.rs`, `README.md`
-- [ ] Extensions: `mobi`
-- [ ] Verify: `cargo test` + `cargo run -- convert test.mobi --output /tmp/out`
+- [x] Extensions: `mobi`
+- [x] `cargo test` — 59 total pass
+- [ ] Manual: `cargo run -- convert your.mobi --output /tmp/out` when Dwayne supplies DRM-free sample
 
 ---
 

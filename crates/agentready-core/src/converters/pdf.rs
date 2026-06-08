@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use crate::converters::plain_text_to_markdown::pdf_pages_to_markdown;
 use crate::converters::ConversionResult;
 use crate::models::{AgentReadyError, ErrorCode};
 use crate::text_quality;
@@ -9,33 +10,10 @@ pub fn convert_pdf(path: &Path) -> Result<ConversionResult, AgentReadyError> {
         .map_err(|_| AgentReadyError::PdfExtract)?;
 
     if pages.is_empty() {
-        return Err(AgentReadyError::UserFacing(
-            crate::models::ErrorCode::NoReadableText,
-        ));
+        return Err(AgentReadyError::UserFacing(ErrorCode::NoReadableText));
     }
 
-    let mut markdown = String::new();
-    let total_pages = pages.len();
-
-    for (i, page) in pages.iter().enumerate() {
-        let trimmed = page.trim();
-        if trimmed.is_empty() {
-            continue;
-        }
-
-        // Add page separator between pages
-        if i > 0 && !markdown.is_empty() {
-            markdown.push_str("\n---\n\n");
-        }
-
-        // Add page header
-        if total_pages > 1 {
-            markdown.push_str(&format!("<!-- Page {} of {} -->\n\n", i + 1, total_pages));
-        }
-
-        markdown.push_str(trimmed);
-        markdown.push('\n');
-    }
+    let markdown = pdf_pages_to_markdown(&pages);
 
     if markdown.trim().is_empty() {
         return Err(AgentReadyError::UserFacing(ErrorCode::NoReadableText));
@@ -63,10 +41,19 @@ pub fn convert_pdf(path: &Path) -> Result<ConversionResult, AgentReadyError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::converters::plain_text_to_markdown::page_text_to_markdown;
 
     #[test]
     fn rejects_nonexistent_file() {
         let result = convert_pdf(std::path::Path::new("/tmp/nonexistent-test-file.pdf"));
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn structures_extracted_lines_as_paragraphs() {
+        let md = page_text_to_markdown("Hello PDF reader.\n\nAgentReady text extraction smoke test.");
+        assert!(md.contains("Hello PDF reader."));
+        assert!(md.contains("AgentReady text extraction smoke test."));
+        assert!(md.contains("\n\n"));
     }
 }

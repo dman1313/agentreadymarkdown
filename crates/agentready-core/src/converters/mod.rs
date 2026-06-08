@@ -6,6 +6,7 @@ pub mod kindle;
 pub mod mobi;
 pub mod markdown;
 pub mod pdf;
+pub mod plain_text_to_markdown;
 pub mod txt;
 
 use std::fs::File;

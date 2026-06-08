@@ -183,10 +183,10 @@
 
     <section id="view-preview" class="panel hidden">
       <div class="flex-between">
-        <h2 id="preview-title" style="margin:0">Preview</h2>
+        <h2 id="preview-title" style="margin:0">Markdown preview</h2>
         <div class="actions">
           <button type="button" class="btn btn-secondary" id="btn-back-results">Back</button>
-          <button type="button" class="btn btn-secondary" id="btn-copy">Copy</button>
+          <button type="button" class="btn btn-secondary" id="btn-copy">Copy Markdown</button>
         </div>
       </div>
       <div id="preview-content" class="preview-body"></div>
@@ -198,6 +198,7 @@
     let jobId = null;
     let pollTimer = null;
     let lastResult = null;
+    let previewMarkdown = '';
 
     function showView(name) {
       views.forEach((v) => $('view-' + v).classList.toggle('hidden', v !== name));
@@ -424,11 +425,19 @@
       return escaped
         .split('\n')
         .map((line) => {
+          const t = line.trim();
+          if (t === '---') return '<hr>';
+          if (t.startsWith('<!--') && t.endsWith('-->')) return '';
+          if (/^###### (.+)/.test(line)) return '<h6>' + line.slice(7) + '</h6>';
+          if (/^##### (.+)/.test(line)) return '<h5>' + line.slice(6) + '</h5>';
+          if (/^#### (.+)/.test(line)) return '<h4>' + line.slice(5) + '</h4>';
           if (/^### (.+)/.test(line)) return '<h3>' + line.slice(4) + '</h3>';
           if (/^## (.+)/.test(line)) return '<h2>' + line.slice(3) + '</h2>';
           if (/^# (.+)/.test(line)) return '<h1>' + line.slice(2) + '</h1>';
-          if (line.trim() === '') return '';
-          if (line.startsWith('- ')) return '<p>• ' + line.slice(2) + '</p>';
+          if (t === '') return '';
+          if (/^> (.+)/.test(line)) return '<blockquote><p>' + line.slice(2) + '</p></blockquote>';
+          if (/^[-*] (.+)/.test(line)) return '<li>' + line.replace(/^[-*] /, '') + '</li>';
+          if (/^\d+\. (.+)/.test(line)) return '<li>' + line.replace(/^\d+\. /, '') + '</li>';
           return '<p>' + line + '</p>';
         })
         .join('');
@@ -438,12 +447,14 @@
       const q = new URLSearchParams({ path: outputFile });
       const res = await fetch('/api/jobs/' + jobId + '/preview?' + q);
       const text = await res.text();
+      previewMarkdown = text;
       $('preview-title').textContent = name;
       const el = $('preview-content');
       if (looksLikeGarbage(text)) {
+        previewMarkdown = '';
         el.className = 'preview-body warn';
         el.textContent =
-          'AgentReady could not show readable text for this file.\n\n' +
+          'AgentReady could not show readable Markdown for this file.\n\n' +
           'Common causes: scanned/image PDF, complex layout, or encrypted content. V1 has no OCR.\n\n' +
           'Try re-exporting as TXT or DOCX from the original app, then upload again.';
       } else {
@@ -455,9 +466,10 @@
 
     $('btn-back-results').addEventListener('click', () => showView('results'));
     $('btn-copy').addEventListener('click', async () => {
-      await navigator.clipboard.writeText($('preview-content').innerText);
+      if (!previewMarkdown) return;
+      await navigator.clipboard.writeText(previewMarkdown);
       $('btn-copy').textContent = 'Copied';
-      setTimeout(() => { $('btn-copy').textContent = 'Copy'; }, 1500);
+      setTimeout(() => { $('btn-copy').textContent = 'Copy Markdown'; }, 1500);
     });
     $('btn-start-over').addEventListener('click', async () => {
       if (!confirm('Start over? Current export will be deleted.')) return;

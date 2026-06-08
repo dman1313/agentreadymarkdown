@@ -355,15 +355,16 @@ async fn preview_file(
         .await
         .map_err(|_| AppError::not_found("Markdown file missing"))?;
 
-    let body = if text_quality::looks_like_garbage(&content) {
+    let markdown = agentready_core::agent_markdown::preview_body(&content);
+    let body = if text_quality::looks_like_garbage(&markdown) {
         text_quality::GARBAGE_PREVIEW_MESSAGE.to_string()
     } else {
-        content
+        markdown
     };
 
     Ok((
         StatusCode::OK,
-        [(header::CONTENT_TYPE, HeaderValue::from_static("text/plain; charset=utf-8"))],
+        [(header::CONTENT_TYPE, HeaderValue::from_static("text/markdown; charset=utf-8"))],
         body,
     ))
 }

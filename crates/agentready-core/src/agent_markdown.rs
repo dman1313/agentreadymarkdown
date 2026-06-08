@@ -1,5 +1,10 @@
 //! Final pass: lean, agent-scannable Markdown (fewer tokens, less noise).
 
+/// Markdown body for preview/copy — no YAML frontmatter or export warning block.
+pub fn preview_body(stored: &str) -> String {
+    strip_leading_warning_blockquote(strip_yaml_frontmatter(stored))
+}
+
 /// Normalize converter output before export. Preserves code fences and tables.
 pub fn normalize_for_agents(markdown: &str) -> String {
     let mut out = String::with_capacity(markdown.len());
@@ -53,6 +58,40 @@ pub fn normalize_for_agents(markdown: &str) -> String {
     out.trim_end().to_string() + "\n"
 }
 
+fn strip_yaml_frontmatter(text: &str) -> &str {
+    let trimmed = text.trim_start();
+    if !trimmed.starts_with("---") {
+        return text;
+    }
+    let Some(rest) = trimmed.strip_prefix("---") else {
+        return text;
+    };
+    let rest = rest.trim_start_matches(['\n', '\r']);
+    if let Some(end) = rest.find("\n---") {
+        rest[end + 4..].trim_start_matches(['\n', '\r'])
+    } else {
+        text
+    }
+}
+
+fn strip_leading_warning_blockquote(text: &str) -> String {
+    let lines: Vec<&str> = text.lines().collect();
+    if lines
+        .first()
+        .is_none_or(|l| !l.trim().starts_with("> **AgentReady warning:**"))
+    {
+        return text.trim().to_string();
+    }
+    let mut i = 0usize;
+    while i < lines.len() && !lines[i].trim().is_empty() {
+        i += 1;
+    }
+    while i < lines.len() && lines[i].trim().is_empty() {
+        i += 1;
+    }
+    lines[i..].join("\n").trim().to_string()
+}
+
 fn strip_invisible(text: &str) -> String {
     text.chars()
         .filter(|c| {
@@ -90,5 +129,15 @@ mod tests {
         let md = "Hello\u{200b}world\n";
         let out = normalize_for_agents(md);
         assert_eq!(out, "Helloworld\n");
+    }
+
+    #[test]
+    fn preview_body_strips_frontmatter_and_warning() {
+        let stored = "---\nsource_file: book.pdf\nsource_type: pdf\nconverted_by: agentready-v1\nstatus: good\n---\n\n> **AgentReady warning:** partial\n\n# Title\n\nBody.\n";
+        let body = preview_body(stored);
+        assert!(!body.contains("source_file"));
+        assert!(!body.contains("AgentReady warning"));
+        assert!(body.contains("# Title"));
+        assert!(body.contains("Body."));
     }
 }

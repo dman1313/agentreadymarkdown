@@ -2,17 +2,39 @@
 
 /// Convert one page of extracted PDF text into Markdown blocks.
 pub fn page_text_to_markdown(page: &str) -> String {
+    page_text_to_markdown_inner(page)
+}
+
+fn page_text_to_markdown_inner(page: &str) -> String {
     let paragraphs = reflow_into_paragraphs(page);
     let mut out = String::new();
     let mut in_list = false;
+    let mut roster_section = false;
 
     for para in paragraphs {
-        let line = para.trim();
-        if line.is_empty() {
+        let raw = para.trim();
+        if raw.is_empty() {
             continue;
         }
 
-        if let Some(item) = bullet_list_item(line) {
+        if is_roman_page_marker(raw) || is_plain_page_marker(raw) {
+            continue;
+        }
+
+        if let Some(entry) = toc_entry(raw) {
+            if !in_list && !out.is_empty() && !out.ends_with("\n\n") {
+                out.push('\n');
+            }
+            out.push_str("- ");
+            out.push_str(&entry);
+            out.push('\n');
+            in_list = true;
+            continue;
+        }
+
+        let line = fix_pdf_word_breaks(raw);
+
+        if let Some(item) = bullet_list_item(&line) {
             if !in_list && !out.is_empty() && !out.ends_with("\n\n") {
                 out.push('\n');
             }
@@ -23,7 +45,7 @@ pub fn page_text_to_markdown(page: &str) -> String {
             continue;
         }
 
-        if let Some(item) = numbered_list_item(line) {
+        if let Some(item) = numbered_list_item(&line) {
             if !in_list && !out.is_empty() && !out.ends_with("\n\n") {
                 out.push('\n');
             }
@@ -34,10 +56,12 @@ pub fn page_text_to_markdown(page: &str) -> String {
 
         in_list = false;
 
-        if let Some((level, title)) = heading_line(line) {
+        if let Some((level, title)) = heading_line(&line) {
             if !out.is_empty() && !out.ends_with("\n\n") {
                 out.push('\n');
             }
+            let lower = title.to_lowercase();
+            roster_section = matches!(lower.as_str(), "panel" | "staff");
             out.push_str(&"#".repeat(level));
             out.push(' ');
             out.push_str(title);
@@ -45,10 +69,33 @@ pub fn page_text_to_markdown(page: &str) -> String {
             continue;
         }
 
+        if roster_section && is_roster_line(&line) {
+            if !in_list && !out.is_empty() && !out.ends_with("\n\n") {
+                out.push('\n');
+            }
+            out.push_str("- ");
+            out.push_str(&line);
+            out.push('\n');
+            in_list = true;
+            continue;
+        }
+
+        roster_section = false;
+
+        if let Some(subtitle) = subtitle_line(&line) {
+            if !out.is_empty() && !out.ends_with("\n\n") {
+                out.push('\n');
+            }
+            out.push_str("## ");
+            out.push_str(subtitle);
+            out.push_str("\n\n");
+            continue;
+        }
+
         if !out.is_empty() && !out.ends_with("\n\n") {
             out.push('\n');
         }
-        out.push_str(line);
+        out.push_str(&line);
         out.push_str("\n\n");
     }
 
@@ -78,19 +125,83 @@ pub fn pdf_pages_to_markdown(pages: &[String]) -> String {
     let mut out = String::new();
 
     for (idx, (page_idx, text)) in non_empty.iter().enumerate() {
-        if total > 1 {
-            if !out.is_empty() {
-                out.push_str("\n\n---\n\n");
+        if total > 1 && idx > 0 {
+            out.push_str("\n\n---\n\n");
+            out.push_str(&format!("<!-- Page {} -->\n\n", page_idx + 1));
+        }
+        let page_md = if *page_idx == 0 {
+            let body = page_text_to_markdown_inner(text);
+            match document_title_prefix(text) {
+                Some(title) => {
+                    let body = strip_duplicate_title_lines(&body, &title);
+                    format!("# {title}\n\n{body}")
+                }
+                None => body,
             }
-            out.push_str(&format!("## Page {}\n\n", page_idx + 1));
-        }
-        out.push_str(&page_text_to_markdown(text));
-        if idx + 1 < total {
-            out.push_str("\n\n");
-        }
+        } else {
+            page_text_to_markdown_inner(text)
+        };
+        out.push_str(&page_md);
     }
 
-    out
+    dedupe_consecutive_paragraphs(&out)
+}
+
+fn document_title_prefix(page: &str) -> Option<String> {
+    let lines: Vec<&str> = page
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty())
+        .take(8)
+        .collect();
+    if lines.is_empty() {
+        return None;
+    }
+    let first = lines[0];
+    if first.len() < 12 || first.len() > 120 || first.ends_with('.') {
+        return None;
+    }
+    let first_lower = first.to_lowercase();
+    let repeats = lines
+        .iter()
+        .filter(|l| l.to_lowercase() == first_lower || l.contains(first))
+        .count();
+    if repeats >= 2 || (lines.len() <= 4 && title_case_ratio(first) > 0.5) {
+        Some(fix_pdf_word_breaks(first))
+    } else {
+        None
+    }
+}
+
+fn title_case_ratio(line: &str) -> f64 {
+    let words: Vec<&str> = line.split_whitespace().collect();
+    if words.is_empty() {
+        return 0.0;
+    }
+    let titled = words
+        .iter()
+        .filter(|w| {
+            w.chars()
+                .next()
+                .is_some_and(|c| c.is_ascii_uppercase())
+        })
+        .count();
+    titled as f64 / words.len() as f64
+}
+
+fn dedupe_consecutive_paragraphs(md: &str) -> String {
+    let mut blocks: Vec<String> = Vec::new();
+    for block in md.split("\n\n") {
+        let trimmed = block.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if blocks.last().is_some_and(|prev| prev == trimmed) {
+            continue;
+        }
+        blocks.push(trimmed.to_string());
+    }
+    blocks.join("\n\n")
 }
 
 fn reflow_into_paragraphs(page: &str) -> Vec<String> {
@@ -240,6 +351,21 @@ fn heading_line(line: &str) -> Option<(usize, &str)> {
         }
     }
 
+    const H2_LABELS: &[&str] = &[
+        "contents",
+        "table of contents",
+        "panel",
+        "staff",
+        "disclaimer",
+        "overview",
+        "introduction",
+        "summary of the recommendations",
+        "ies practice guide",
+    ];
+    if H2_LABELS.iter().any(|label| lower == *label) {
+        return Some((2, trimmed));
+    }
+
     if numbered_section_heading(trimmed) {
         return Some((2, trimmed));
     }
@@ -249,6 +375,125 @@ fn heading_line(line: &str) -> Option<(usize, &str)> {
     }
 
     None
+}
+
+fn fix_pdf_word_breaks(s: &str) -> String {
+    let words: Vec<&str> = s.split_whitespace().collect();
+    let mut out: Vec<String> = Vec::new();
+    for word in words {
+        if let Some(last) = out.last_mut() {
+            if should_merge_pdf_tokens(last, word) {
+                last.push_str(word);
+                continue;
+            }
+        }
+        out.push(word.to_string());
+    }
+    out.join(" ")
+}
+
+fn should_merge_pdf_tokens(prev: &str, next: &str) -> bool {
+    if !(2..=3).contains(&prev.len()) {
+        return false;
+    }
+    if !prev.chars().all(|c| c.is_ascii_alphabetic()) {
+        return false;
+    }
+    // Keep acronyms separate: "PDF reader" not "PDFreader".
+    if prev.chars().all(|c| c.is_ascii_uppercase()) {
+        return false;
+    }
+    const STOP_WORDS: &[&str] = &["and", "for", "the", "with", "from", "not"];
+    if STOP_WORDS.contains(&prev) {
+        return false;
+    }
+    if !next
+        .chars()
+        .next()
+        .is_some_and(|c| c.is_ascii_lowercase())
+    {
+        return false;
+    }
+    // Typical PDF break: "Re" + "gional" or "edu" + "cation".
+    prev.chars().next().is_some_and(|c| c.is_ascii_uppercase())
+        || prev.chars().all(|c| c.is_ascii_lowercase())
+}
+
+fn is_plain_page_marker(line: &str) -> bool {
+    let lower = line.trim().to_lowercase();
+    lower.strip_prefix("page ")
+        .and_then(|n| n.trim().parse::<u32>().ok())
+        .is_some()
+}
+
+fn is_roster_line(line: &str) -> bool {
+    let t = line.trim();
+    if t.len() < 6 || t.len() > 100 {
+        return false;
+    }
+    if t.ends_with('.') || t.starts_with('#') {
+        return false;
+    }
+    t.chars()
+        .next()
+        .is_some_and(|c| c.is_ascii_uppercase())
+}
+
+fn subtitle_line(line: &str) -> Option<&str> {
+    let t = line.trim();
+    if t.len() < 8 || t.len() > 100 || t.ends_with('.') {
+        return None;
+    }
+    if t.starts_with('(') {
+        Some(t)
+    } else {
+        None
+    }
+}
+
+fn strip_duplicate_title_lines(body: &str, title: &str) -> String {
+    let title_lower = title.to_lowercase();
+    body.split("\n\n")
+        .filter(|block| {
+            let b = block.trim();
+            if b.is_empty() {
+                return false;
+            }
+            let b_lower = b.to_lowercase();
+            b_lower != title_lower && !title_lower.contains(&b_lower) && !b_lower.contains(&title_lower)
+        })
+        .collect::<Vec<_>>()
+        .join("\n\n")
+}
+
+fn is_roman_page_marker(line: &str) -> bool {
+    let t = line.trim();
+    let inner = t
+        .strip_prefix('(')
+        .and_then(|s| s.strip_suffix(')'))
+        .map(str::trim);
+    let Some(inner) = inner else {
+        return false;
+    };
+    !inner.is_empty()
+        && inner
+            .chars()
+            .all(|c| matches!(c, 'i' | 'v' | 'x' | 'l' | 'c' | 'd' | 'm' | 'I' | 'V' | 'X' | 'L' | 'C' | 'D' | 'M'))
+}
+
+fn toc_entry(line: &str) -> Option<String> {
+    let trimmed = line.trim();
+    // Table-of-contents rows use a wide gap before the page number.
+    let (title, page) = trimmed.rsplit_once("  ")?;
+    let title = title.trim();
+    let page = page.trim();
+    if title.len() < 3 || !page.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    if title.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    Some(format!("{title} (p. {page})"))
 }
 
 fn numbered_section_heading(line: &str) -> bool {
@@ -309,17 +554,48 @@ mod tests {
     }
 
     #[test]
-    fn multi_page_uses_page_headings() {
+    fn multi_page_uses_page_comments() {
         let pages = vec!["Page one text.".into(), "Page two text.".into()];
         let md = pdf_pages_to_markdown(&pages);
-        assert!(md.contains("## Page 1"));
-        assert!(md.contains("## Page 2"));
+        assert!(!md.contains("## Page 1"));
+        assert!(md.contains("<!-- Page 2 -->"));
         assert!(md.contains("---"));
     }
 
     #[test]
     fn single_page_no_page_heading() {
         let md = pdf_pages_to_markdown(&["Just one page.".into()]);
-        assert!(!md.contains("## Page"));
+        assert!(!md.contains("<!-- Page"));
+    }
+
+    #[test]
+    fn fixes_pdf_word_breaks() {
+        let md = page_text_to_markdown("Re gional Assistance and edu cation policy.");
+        assert!(md.contains("Regional"));
+        assert!(md.contains("education"));
+    }
+
+    #[test]
+    fn contents_and_toc_become_markdown() {
+        let page = "Contents\n\nIntroduction  1\n\nOverview  4";
+        let md = page_text_to_markdown(page);
+        assert!(md.contains("## Contents"));
+        assert!(md.contains("- Introduction (p. 1)"));
+        assert!(md.contains("- Overview (p. 4)"));
+    }
+
+    #[test]
+    fn ies_style_labels_are_headings() {
+        let md = page_text_to_markdown("IES PRACTICE GUIDE\n\nPanel\n\nRussell Gersten (Chair)");
+        assert!(md.contains("## IES PRACTICE GUIDE"));
+        assert!(md.contains("## Panel"));
+        assert!(md.contains("- Russell Gersten (Chair)"));
+    }
+
+    #[test]
+    fn skips_plain_page_markers() {
+        let md = page_text_to_markdown("Page 2\n\nReal paragraph.");
+        assert!(!md.contains("Page 2"));
+        assert!(md.contains("Real paragraph"));
     }
 }

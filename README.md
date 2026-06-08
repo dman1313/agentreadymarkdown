@@ -16,17 +16,54 @@ A **HumanGoodAI** product. V1 is spec-driven; the design package lives in [`docs
 
 The export is built for RAG folders, Claude projects, ChatGPT knowledge, Obsidian vaults, and any workflow where an agent needs readable, linked source material—not binary PDFs or opaque DOCX internals.
 
+### Before → after (why agents prefer this)
+
+Agents can read PDFs and Word files, but those formats carry **layout noise**—binary structure, styles, tags, and positioning—that burns context before the model reaches the meaning. AgentReady strips that down to **lean Markdown**: headings, lists, tables, and short YAML frontmatter.
+
+**Example — text PDF** ([`examples/sample-input/ebooks/minimal.pdf`](examples/sample-input/ebooks/minimal.pdf)):
+
+| | What the agent sees |
+|---|---------------------|
+| **Before** | 663-byte PDF binary (or a messy text dump with no structure) |
+| **After** | ~60 characters of content in clear paragraphs, plus a 6-line frontmatter block |
+
+```markdown
+---
+source_file: minimal.pdf
+source_type: pdf
+converted_by: agentready-v1
+status: good
+---
+
+Hello PDF reader.
+
+AgentReady text extraction smoke test.
+```
+
+Try it yourself:
+
+```bash
+cargo run -- convert examples/sample-input/ebooks/minimal.pdf --output /tmp/ar-demo
+cat /tmp/ar-demo/documents/minimal-pdf.md
+```
+
+**What we claim:** cleaner structure, less formatting noise, easier agent navigation via `index.md` and `manifest.json`.
+
+**What we do not claim:** exact token savings or fixed percentages—that depends on your model, prompt, and source file.
+
+See [`docs/09_MARKDOWN_STANDARD.md`](docs/09_MARKDOWN_STANDARD.md) for the output contract.
+
 ---
 
 ## Supported formats
 
 | Format | Extensions | Notes |
 |--------|------------|-------|
-| Plain text | `.txt` | UTF-8; BOM stripped |
-| Markdown | `.md`, `.markdown` | Preserved structure (tables, code blocks) |
+| Plain text | `.txt` | UTF-8; paragraphs, headings, and lists inferred where possible |
+| Markdown | `.md`, `.markdown` | Preserved structure (tables, code blocks); normalized for export |
 | CSV | `.csv` | Tabular Markdown + raw CSV in `data/` |
 | Word | `.docx` | Structure extracted to Markdown |
-| PDF | `.pdf` | Text extraction; garbage/mojibake rejected with a clear message |
+| PDF | `.pdf` | Text → structured Markdown; garbage/mojibake rejected (no OCR) |
 | EPUB | `.epub` | Ebook chapters in spine order (HTML → Markdown) |
 | MOBI | `.mobi` | Legacy Kindle ebooks (DRM-free only) |
 | AZW3 | `.azw3` | Kindle KF8 — prefers KF8 section when present |
@@ -115,11 +152,15 @@ See [`docs/10_EXPORT_PACKAGE.md`](docs/10_EXPORT_PACKAGE.md) for the full spec.
 ## How it works
 
 ```text
-┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  Web UI or  │────▶│  agentready-core │────▶│  Export folder  │
-│  CLI upload │     │  converters +    │     │  + zip download │
-└─────────────┘     │  validation      │     └─────────────────┘
-                    └──────────────────┘
+Upload → validate → convert to Markdown → reject garbage → normalize for agents → export zip
+```
+
+```text
+┌─────────────┐     ┌──────────────────────────────────────┐     ┌─────────────────┐
+│  Web UI or  │────▶│  agentready-core                     │────▶│  Export folder  │
+│  CLI upload │     │  converters · text_quality ·         │     │  + zip download │
+└─────────────┘     │  agent_markdown · export             │     └─────────────────┘
+                    └──────────────────────────────────────┘
 ```
 
 **Rust workspace**
@@ -131,7 +172,7 @@ See [`docs/10_EXPORT_PACKAGE.md`](docs/10_EXPORT_PACKAGE.md) for the full spec.
 
 The web server runs conversion **in-process**—no separate Node server or child CLI process. Legacy `apps/server` and `apps/web` are deprecated; see [`apps/README.md`](apps/README.md).
 
-**Quality checks:** PDF text passes readability heuristics before export; unreadable extractions surface as user-facing errors instead of mojibake in preview.
+**Agent-ready output:** converters emit structure (headings, lists, tables where detected); `text_quality` blocks unreadable PDF/ebook extract; `normalize_for_agents` removes invisible characters and extra blank lines before export.
 
 ---
 

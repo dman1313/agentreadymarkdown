@@ -24,7 +24,10 @@ Detect file type
 | TXT | Lightly convert to Markdown. |
 | Markdown | Preserve structure and normalize only when safe. |
 | CSV | Create Markdown table and preserve CSV copy. |
-| XLSX | Convert sheets/tables and preserve CSV copies. |
+| EPUB | Spine-ordered HTML → Markdown; zip-bomb guards. |
+| MOBI | Kindle PDB via MIT `mobi` crate; DRM rejected. |
+| AZW3 / AZW | KF8 boundary preferred when EXTH offset present; else MOBI layer. |
+| XLSX | Convert sheets/tables and preserve CSV copies. *(out of scope V1 build)* |
 
 ## Quality priority
 

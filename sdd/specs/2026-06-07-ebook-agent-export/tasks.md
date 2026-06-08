@@ -49,17 +49,16 @@
 ## Phase 2 — AZW3 + AZW
 
 ### Task 2.1: Implement `convert_azw3`
-**Files:** Create `azw3.rs`, optionally `html_md.rs`, Modify `epub.rs` if extracting shared HTML MD
-- [ ] Parse KF8/AZW3 container; extract HTML content
-- [ ] Reuse HTML→Markdown path
-- [ ] DRM reject + text_quality
-- [ ] Verify: `cargo test converters::azw3`
+**Files:** Create `kindle.rs`, `azw3.rs`; refactor `mobi.rs`
+- [x] Shared `kindle.rs` — KF8 boundary via EXTH 121, DRM EXTH + encryption checks
+- [x] `azw3.rs` + `convert_azw` for `.azw`
+- [x] Verify: `cargo test converters::azw3 converters::kindle`
 
 ### Task 2.2: AZW router
-**Files:** `job.rs`, `validation.rs`, `serve.rs`, `index.html`
-- [ ] `.azw` and `.azw3` in allowlists
-- [ ] Sniff and route `.azw` → mobi or azw3
-- [ ] Verify: manual convert on Dwayne's local `.azw3`
+**Files:** `job.rs`, `validation.rs`, `serve.rs`, `index.html`, `README.md`
+- [x] `.azw` and `.azw3` in allowlists
+- [x] `cargo test` green
+- [ ] Manual convert on Dwayne's local `.azw3` when sample available
 
 ---
 

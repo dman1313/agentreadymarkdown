@@ -28,11 +28,13 @@ The export is built for RAG folders, Claude projects, ChatGPT knowledge, Obsidia
 | Word | `.docx` | Structure extracted to Markdown |
 | PDF | `.pdf` | Text extraction; garbage/mojibake rejected with a clear message |
 | EPUB | `.epub` | Ebook chapters in spine order (HTML → Markdown) |
-| MOBI | `.mobi` | Legacy Kindle ebooks (DRM-free only; MIT `mobi` crate) |
+| MOBI | `.mobi` | Legacy Kindle ebooks (DRM-free only) |
+| AZW3 | `.azw3` | Kindle KF8 — prefers KF8 section when present |
+| AZW | `.azw` | Kindle PDB (routed via same pipeline as MOBI/AZW3) |
 
 **Limits (V1):** up to **25 files** per job, **50 MB** per file.
 
-**Not in V1:** AZW3/AZW (planned), OCR, audio, websites, XLSX, accounts, or AI enrichment.
+**Not in V1:** OCR, audio, websites, XLSX, accounts, or AI enrichment.
 
 **Ebooks:** You must own or be authorized to convert files. **DRM-free only** — see [`docs/23_CONTENT_OWNERSHIP_AND_LEGAL.md`](docs/23_CONTENT_OWNERSHIP_AND_LEGAL.md).
 

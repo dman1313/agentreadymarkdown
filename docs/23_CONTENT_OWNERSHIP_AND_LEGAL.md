@@ -1,7 +1,7 @@
 # 23 — Content Ownership, DRM, and Legal Notice
 
 **Status:** V1 user-facing requirement  
-**Applies to:** All uploads, especially ebooks (EPUB, PDF, MOBI, AZW3, AZW)
+**Applies to:** All uploads, especially ebooks (EPUB, PDF, MOBI, AZW3, AZW — DRM-free only)
 
 ---
 

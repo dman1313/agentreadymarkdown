@@ -1,6 +1,6 @@
 # Spec: Ebook Agent Export (MOBI + AZW3)
 
-- **Status:** Approved — MOBI first (2026-06-07)
+- **Status:** Approved — MOBI + AZW3 shipped (2026-06-08)
 - **Owner:** Dwayne Primeau · **Agent:** cursor · **Date:** 2026-06-07
 
 ## Goal

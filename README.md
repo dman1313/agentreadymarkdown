@@ -43,8 +43,20 @@ AgentReady text extraction smoke test.
 Try it yourself:
 
 ```bash
+./scripts/demo-before-after.sh          # PDF + DOCX + EPUB in one shot
 cargo run -- convert examples/sample-input/ebooks/minimal.pdf --output /tmp/ar-demo
 cat /tmp/ar-demo/documents/minimal-pdf.md
+```
+
+**DOCX** ([`minimal.docx`](examples/sample-input/ebooks/minimal.docx)) shows the strongest structure — Word styles become `#` headings and `-` lists:
+
+```markdown
+# Staff Handbook
+
+Welcome to the team. This is agent-ready content.
+
+- Be kind
+- Be clear
 ```
 
 **What we claim:** cleaner structure, less formatting noise, easier agent navigation via `index.md` and `manifest.json`.

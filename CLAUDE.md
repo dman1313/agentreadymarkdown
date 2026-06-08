@@ -9,6 +9,7 @@ cargo build --release    # Release build
 cargo run -- convert <input> --output <dir>  # CLI
 ./scripts/serve.sh       # Local web UI (recommended)
 ./scripts/serve.sh --port 3001
+./scripts/demo-before-after.sh  # PDF/DOCX/EPUB before→after demo
 cargo run -- serve       # Or run directly after cargo build
 ```
 
@@ -16,7 +17,7 @@ cargo run -- serve       # Or run directly after cargo build
 
 Rust workspace:
 
-- `crates/agentready-core` — converters, validation, export, `job::run_job` pipeline
+- `crates/agentready-core` — converters, `text_quality`, `agent_markdown`, export, `job::run_job` pipeline
 - `crates/agentready-cli` — `convert` + `serve` (axum, embedded HTML UI)
 
 Legacy `apps/server` and `apps/web` are deprecated; use `agentready serve` instead.

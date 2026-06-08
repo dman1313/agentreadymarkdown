@@ -172,6 +172,30 @@ fn fixture_structure_is_correct() {
 }
 
 #[test]
+fn convert_minimal_docx() {
+    let bin = agentready_bin();
+    let root = project_root();
+    let input = root.join("examples/sample-input/ebooks/minimal.docx");
+
+    let dir = TempDir::new().unwrap();
+    let output = dir.path().join("output");
+
+    let status = Command::new(&bin)
+        .args(["convert", input.to_str().unwrap(), "--output", output.to_str().unwrap()])
+        .current_dir(&root)
+        .status()
+        .unwrap();
+    assert!(status.success(), "DOCX convert should exit 0");
+
+    let doc = output.join("documents/minimal-docx.md");
+    assert!(doc.exists(), "minimal-docx.md missing");
+    let content = fs::read_to_string(doc).unwrap();
+    assert!(content.contains("# Staff Handbook"));
+    assert!(content.contains("- Be kind"));
+    assert!(content.contains("- Be clear"));
+}
+
+#[test]
 fn convert_minimal_pdf() {
     let bin = agentready_bin();
     let root = project_root();

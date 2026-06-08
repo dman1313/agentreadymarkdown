@@ -4,8 +4,17 @@ Do **not** commit copyrighted ebooks to this repository.
 
 ## Committed fixtures
 
-- `minimal.epub` — tiny DRM-free EPUB (`convert_minimal_epub` integration test).
-- `minimal.pdf` — tiny text PDF (`convert_minimal_pdf` integration test).
+Demo all three:
+
+```bash
+./scripts/demo-before-after.sh
+```
+
+| File | Integration test | Agent Markdown output |
+|------|------------------|------------------------|
+| `minimal.epub` | `convert_minimal_epub` | `# Chapter One` + paragraphs |
+| `minimal.pdf` | `convert_minimal_pdf` | Paragraphs (no OCR) |
+| `minimal.docx` | `convert_minimal_docx` | `# Staff Handbook` + bullet list |
 
 ## MOBI / AZW3 / AZW / EPUB manual testing
 

@@ -1,0 +1,3 @@
+# Always build into ./target in this repo (avoids stale/wrong binaries).
+[build]
+target-dir = "target"

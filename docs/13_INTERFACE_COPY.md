@@ -23,6 +23,18 @@ Upload your documents and data. AgentReady converts them into clean Markdown fil
 Your files are processed temporarily to create your AgentReady export. AgentReady does not keep your source documents after conversion.
 ```
 
+## Content ownership & DRM (legal notice — upload page)
+
+See full spec: `docs/23_CONTENT_OWNERSHIP_AND_LEGAL.md`.
+
+```md
+**Your files.** Upload only content you own or are authorized to convert.
+
+**DRM-free ebooks.** EPUB, PDF, MOBI, and AZW3 must be DRM-free. AgentReady cannot remove copy protection and will reject encrypted or DRM-protected books.
+
+**Your responsibility.** AgentReady is a conversion tool. HumanGoodAI does not verify ownership or legality of your files and accepts no responsibility for how you obtain or use converted content. You are solely responsible for copyright and licensing compliance.
+```
+
 ## What happens to my files?
 
 ```md

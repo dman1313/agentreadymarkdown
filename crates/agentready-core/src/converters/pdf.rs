@@ -1,7 +1,8 @@
 use std::path::Path;
 
 use crate::converters::ConversionResult;
-use crate::models::AgentReadyError;
+use crate::models::{AgentReadyError, ErrorCode};
+use crate::text_quality;
 
 pub fn convert_pdf(path: &Path) -> Result<ConversionResult, AgentReadyError> {
     let pages = pdf_extract::extract_text_by_pages(path)
@@ -37,14 +38,24 @@ pub fn convert_pdf(path: &Path) -> Result<ConversionResult, AgentReadyError> {
     }
 
     if markdown.trim().is_empty() {
-        return Err(AgentReadyError::UserFacing(
-            crate::models::ErrorCode::NoReadableText,
-        ));
+        return Err(AgentReadyError::UserFacing(ErrorCode::NoReadableText));
     }
+
+    if text_quality::looks_like_garbage(&markdown) {
+        return Err(AgentReadyError::UserFacing(ErrorCode::NoReadableText));
+    }
+
+    let warning = if text_quality::readable_text_ratio(&markdown) < 0.75 {
+        Some(
+            "Some PDF text may not have extracted cleanly. Please review the output.".into(),
+        )
+    } else {
+        None
+    };
 
     Ok(ConversionResult {
         markdown,
-        warning: None,
+        warning,
         raw_data: None,
     })
 }

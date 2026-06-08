@@ -44,10 +44,30 @@
       text-align: center;
       cursor: pointer;
       transition: border-color 0.15s, background 0.15s;
+      position: relative;
     }
-    .upload-zone:hover, .upload-zone.drag-active {
+    /* Let drops hit the zone, not the text inside it */
+    .upload-zone * { pointer-events: none; }
+    .upload-zone:hover, .upload-zone.drag-active,
+    .upload-panel.drag-active .upload-zone {
       border-color: var(--primary);
       background: rgba(91,159,212,0.08);
+    }
+    .upload-panel { position: relative; }
+    .upload-panel.drag-active { outline: 2px solid rgba(91,159,212,0.35); outline-offset: 4px; border-radius: 12px; }
+    .file-drop-overlay {
+      display: none; position: absolute; inset: 0; z-index: 20;
+      align-items: center; justify-content: center; border-radius: 12px;
+      background: rgba(91,159,212,0.18); border: 2px dashed var(--primary);
+      font-weight: 600; font-size: 1.05rem; pointer-events: none;
+    }
+    .file-drop-overlay.active { display: flex; pointer-events: auto; }
+    .selected-files { margin-top: 1rem; font-size: 0.9rem; }
+    .selected-files ul { margin: 0.4rem 0 0; padding-left: 1.2rem; color: var(--text); }
+    .selected-files.empty { display: none; }
+    .file-input-hidden {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0,0,0,0); border: 0;
     }
     .upload-zone h2 { margin: 0.5rem 0 0.25rem; font-size: 1.1rem; }
     .upload-zone p { margin: 0; color: var(--muted); font-size: 0.9rem; }
@@ -92,12 +112,18 @@
     .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
     .btn-link { background: none; border: none; color: var(--primary); cursor: pointer; padding: 0; font-size: inherit; }
     .preview-body {
-      white-space: pre-wrap; font-family: ui-monospace, monospace;
-      font-size: 0.85rem; max-height: 60vh; overflow: auto;
+      white-space: pre-wrap; font-family: system-ui, sans-serif;
+      font-size: 0.95rem; line-height: 1.6; max-height: 60vh; overflow: auto;
       background: rgba(0,0,0,0.25); padding: 1rem; border-radius: 8px;
       margin-top: 1rem;
     }
+    .preview-body.warn { color: var(--warn); font-family: system-ui, sans-serif; }
+    .preview-body h1, .preview-body h2, .preview-body h3 { margin: 1rem 0 0.5rem; }
+    .preview-body p { margin: 0.5rem 0; }
+    .preview-body code { font-family: ui-monospace, monospace; background: rgba(0,0,0,0.3); padding: 0.1rem 0.3rem; border-radius: 4px; }
     .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+    .legal-notice { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); font-size: 0.8rem; line-height: 1.45; }
+    .muted-legal { color: var(--muted); }
   </style>
 </head>
 <body>
@@ -107,21 +133,30 @@
       <p class="subtitle">by HumanGoodAI</p>
     </header>
 
-    <section id="view-upload" class="panel">
+    <section id="view-upload" class="panel upload-panel">
+      <div id="file-drop-overlay" class="file-drop-overlay" aria-hidden="true">Drop files to upload</div>
       <p class="tagline">Is your data agent ready?</p>
       <p class="description">
         Upload your files, preview clean Markdown, and download an agent-ready zip.
         Everything runs on your machine — no cloud processing.
       </p>
-      <div id="drop-zone" class="upload-zone" tabindex="0" role="button" aria-label="Upload files">
+      <label id="drop-zone" class="upload-zone" for="file-input" tabindex="0" role="button" aria-label="Upload files">
         <h2>Upload your files</h2>
-        <p>Drag and drop, or click to browse</p>
-        <input id="file-input" type="file" multiple accept=".txt,.md,.csv,.docx,.pdf" hidden />
+        <p>Drag and drop anywhere here, or click to browse</p>
+      </label>
+      <input id="file-input" class="file-input-hidden" type="file" multiple
+        accept=".txt,.md,.markdown,.csv,.docx,.pdf,.epub,text/plain,text/markdown,text/csv,application/pdf,application/epub+zip,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+      <div id="selected-files" class="selected-files empty">
+        <strong>Ready to convert:</strong>
+        <ul id="selected-files-list"></ul>
       </div>
       <div class="info">
-        <div><strong>Supported:</strong> TXT, Markdown, CSV, DOCX, PDF</div>
+        <div><strong>Supported:</strong> TXT, Markdown, CSV, DOCX, PDF, EPUB (ebooks)</div>
         <div><strong>Limits:</strong> Up to 25 files, 50 MB each</div>
         <div>Processed locally in Rust — nothing leaves your computer.</div>
+        <div><strong>iCloud files:</strong> If drag-and-drop fails, open the file once in Preview or copy it to Desktop first.</div>
+        <div class="legal-notice"><strong>Your files only.</strong> Upload content you own or are authorized to convert. Ebooks must be <strong>DRM-free</strong> — AgentReady cannot remove copy protection and will reject encrypted books.</div>
+        <div class="legal-notice muted-legal">AgentReady is a conversion tool. HumanGoodAI does not verify ownership or legality of uploads and accepts no responsibility for how you obtain or use converted content. You are solely responsible for copyright and licensing compliance. <a href="https://github.com/dman1313/agentreadymarkdown/blob/main/docs/23_CONTENT_OWNERSHIP_AND_LEGAL.md" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">Full notice</a></div>
       </div>
     </section>
 
@@ -154,7 +189,7 @@
           <button type="button" class="btn btn-secondary" id="btn-copy">Copy</button>
         </div>
       </div>
-      <pre id="preview-content" class="preview-body"></pre>
+      <div id="preview-content" class="preview-body"></div>
     </section>
   </div>
   <script>
@@ -169,32 +204,137 @@
     }
 
     const dropZone = $('drop-zone');
+    const uploadPanel = $('view-upload');
+    const dropOverlay = $('file-drop-overlay');
     const fileInput = $('file-input');
+    const selectedFilesBox = $('selected-files');
+    const selectedFilesList = $('selected-files-list');
 
-    dropZone.addEventListener('click', () => fileInput.click());
+    function isUploadView() {
+      return !uploadPanel.classList.contains('hidden');
+    }
+
+    function dragHasFiles(dt) {
+      if (!dt || !dt.types) return false;
+      return Array.from(dt.types).some((t) =>
+        t === 'Files' || t === 'application/x-moz-file' || t === 'public.file-url'
+      );
+    }
+
+    // Must read synchronously inside the drop event — do not defer.
+    function filesFromDataTransfer(dt) {
+      if (!dt) return [];
+      const out = [];
+      if (dt.items && dt.items.length) {
+        for (let i = 0; i < dt.items.length; i++) {
+          const item = dt.items[i];
+          if (item.kind === 'file') {
+            const f = item.getAsFile();
+            if (f) out.push(f);
+          }
+        }
+      }
+      if (!out.length && dt.files && dt.files.length) {
+        return Array.from(dt.files);
+      }
+      return out;
+    }
+
+    function setDragActive(on) {
+      dropZone.classList.toggle('drag-active', on);
+      uploadPanel.classList.toggle('drag-active', on);
+      dropOverlay.classList.toggle('active', on);
+      dropOverlay.setAttribute('aria-hidden', on ? 'false' : 'true');
+    }
+
+    function showSelectedFiles(files) {
+      selectedFilesList.innerHTML = files.map((f) =>
+        '<li>' + escapeHtml(f.name) + ' (' + formatSize(f.size) + ')</li>'
+      ).join('');
+      selectedFilesBox.classList.toggle('empty', files.length === 0);
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function validateFiles(files) {
+      const empty = files.filter((f) => f.size === 0);
+      if (empty.length) {
+        return 'File(s) are empty (0 bytes): ' + empty.map((f) => f.name).join(', ') +
+          '. If stored in iCloud, open in Preview or copy to Desktop first, then try again.';
+      }
+      const limit = 50 * 1024 * 1024;
+      const huge = files.filter((f) => f.size > limit);
+      if (huge.length) {
+        return 'File(s) over 50 MB: ' + huge.map((f) => f.name + ' (' + formatSize(f.size) + ')').join(', ');
+      }
+      return null;
+    }
+
+    function processDrop(e) {
+      if (!isUploadView()) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
+      const files = filesFromDataTransfer(e.dataTransfer);
+      if (!files.length) {
+        alert('No files detected in drop. If you dropped a folder, select the files inside it instead.');
+        return;
+      }
+      const err = validateFiles(files);
+      if (err) { alert(err); return; }
+      showSelectedFiles(files);
+      upload(files);
+    }
+
+    function allowDrag(e) {
+      if (!isUploadView() || !dragHasFiles(e.dataTransfer)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+      setDragActive(true);
+    }
+
     dropZone.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
     });
-    ['dragenter', 'dragover'].forEach((ev) => {
-      dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.add('drag-active'); });
+
+    // Bind on overlay + panel + window (capture). Do NOT hide on dragleave — it fires before drop.
+    [dropOverlay, uploadPanel, dropZone, window].forEach((el) => {
+      el.addEventListener('dragenter', allowDrag, true);
+      el.addEventListener('dragover', allowDrag, true);
+      el.addEventListener('drop', processDrop, true);
     });
-    ['dragleave', 'drop'].forEach((ev) => {
-      dropZone.addEventListener(ev, (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('drag-active');
-        if (ev === 'drop' && e.dataTransfer.files.length) upload(e.dataTransfer.files);
-      });
-    });
+    window.addEventListener('dragend', () => setDragActive(false), true);
+
     fileInput.addEventListener('change', () => {
-      if (fileInput.files.length) upload(fileInput.files);
+      if (fileInput.files && fileInput.files.length) {
+        const files = Array.from(fileInput.files);
+        const err = validateFiles(files);
+        if (err) { alert(err); fileInput.value = ''; return; }
+        showSelectedFiles(files);
+        upload(files);
+      }
     });
 
     async function upload(files) {
-      showView('converting');
-      $('convert-status').textContent = 'Uploading…';
-      $('progress-fill').style.width = '0%';
+      const err = validateFiles(files);
+      if (err) { alert(err); showView('upload'); return; }
+
+      // Build FormData immediately while File refs are still valid
       const fd = new FormData();
-      for (const f of files) fd.append('file', f);
+      const names = [];
+      for (const f of files) {
+        fd.append('file', f, f.name);
+        names.push(f.name + ' (' + formatSize(f.size) + ')');
+      }
+
+      showView('converting');
+      $('convert-status').textContent = 'Uploading ' + names.join(', ') + '…';
+      $('progress-fill').style.width = '0%';
       try {
         const res = await fetch('/api/jobs', { method: 'POST', body: fd });
         if (!res.ok) {
@@ -268,18 +408,54 @@
       });
     }
 
+    function looksLikeGarbage(text) {
+      if (!text || text.length < 20) return false;
+      const sample = text.slice(0, 4000);
+      let good = 0;
+      for (const ch of sample) {
+        if (/[\n\r\t ]/.test(ch) || /[a-zA-Z0-9]/.test(ch)) good++;
+        else if (/[.,;:!?\-_()[\]{}#*|/\\'"%&@+=<>]/.test(ch)) good++;
+      }
+      return good / sample.length < 0.55;
+    }
+
+    function renderPreviewMarkdown(text) {
+      const escaped = escapeHtml(text);
+      return escaped
+        .split('\n')
+        .map((line) => {
+          if (/^### (.+)/.test(line)) return '<h3>' + line.slice(4) + '</h3>';
+          if (/^## (.+)/.test(line)) return '<h2>' + line.slice(3) + '</h2>';
+          if (/^# (.+)/.test(line)) return '<h1>' + line.slice(2) + '</h1>';
+          if (line.trim() === '') return '';
+          if (line.startsWith('- ')) return '<p>• ' + line.slice(2) + '</p>';
+          return '<p>' + line + '</p>';
+        })
+        .join('');
+    }
+
     async function preview(outputFile, name) {
       const q = new URLSearchParams({ path: outputFile });
       const res = await fetch('/api/jobs/' + jobId + '/preview?' + q);
       const text = await res.text();
       $('preview-title').textContent = name;
-      $('preview-content').textContent = text;
+      const el = $('preview-content');
+      if (looksLikeGarbage(text)) {
+        el.className = 'preview-body warn';
+        el.textContent =
+          'AgentReady could not show readable text for this file.\n\n' +
+          'Common causes: scanned/image PDF, complex layout, or encrypted content. V1 has no OCR.\n\n' +
+          'Try re-exporting as TXT or DOCX from the original app, then upload again.';
+      } else {
+        el.className = 'preview-body';
+        el.innerHTML = renderPreviewMarkdown(text);
+      }
       showView('preview');
     }
 
     $('btn-back-results').addEventListener('click', () => showView('results'));
     $('btn-copy').addEventListener('click', async () => {
-      await navigator.clipboard.writeText($('preview-content').textContent);
+      await navigator.clipboard.writeText($('preview-content').innerText);
       $('btn-copy').textContent = 'Copied';
       setTimeout(() => { $('btn-copy').textContent = 'Copy'; }, 1500);
     });
@@ -289,6 +465,7 @@
       jobId = null;
       lastResult = null;
       fileInput.value = '';
+      showSelectedFiles([]);
       showView('upload');
     });
 

@@ -216,6 +216,7 @@ fn convert_with_timeout(
             "csv" => converters::csv::convert_csv(&path),
             "docx" => converters::docx::convert_docx(&path),
             "pdf" => converters::pdf::convert_pdf(&path),
+            "epub" => converters::epub::convert_epub(&path),
             _ => Err(AgentReadyError::UserFacing(ErrorCode::UnsupportedFile)),
         };
         let _ = tx.send(result);

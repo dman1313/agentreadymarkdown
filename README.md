@@ -155,6 +155,13 @@ Project conventions: [`CLAUDE.md`](CLAUDE.md).
 - **No accounts**, no persistent workspace history, no AI enrichment in V1.
 - See [`docs/15_SECURITY_AND_PRIVACY.md`](docs/15_SECURITY_AND_PRIVACY.md) and [`docs/adr/ADR-0004-temporary-processing-privacy.md`](docs/adr/ADR-0004-temporary-processing-privacy.md).
 
+## Content & legal (V1)
+
+- Upload only files **you own** or are **authorized** to convert.
+- Ebooks (EPUB, PDF, MOBI, AZW3) must be **DRM-free** — AgentReady cannot remove copy protection.
+- AgentReady is a conversion tool; **HumanGoodAI accepts no responsibility** for the legality of your uploads or use of exports. You are solely responsible for copyright compliance.
+- Full notice: [`docs/23_CONTENT_OWNERSHIP_AND_LEGAL.md`](docs/23_CONTENT_OWNERSHIP_AND_LEGAL.md). Every export zip includes the legal notice in `README.md`.
+
 ---
 
 ## Spec and design package

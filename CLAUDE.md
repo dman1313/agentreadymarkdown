@@ -7,8 +7,9 @@ cargo check              # Type-check
 cargo test               # Run all tests
 cargo build --release    # Release build
 cargo run -- convert <input> --output <dir>  # CLI
-cargo run -- serve       # Local web UI (Rust-only)
-cargo run -- serve --port 3000 --host 127.0.0.1
+./scripts/serve.sh       # Local web UI (recommended)
+./scripts/serve.sh --port 3001
+cargo run -- serve       # Or run directly after cargo build
 ```
 
 ## Architecture

@@ -1,5 +1,6 @@
 pub mod csv;
 pub mod docx;
+pub mod epub;
 pub mod markdown;
 pub mod pdf;
 pub mod txt;

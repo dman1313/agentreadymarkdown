@@ -1,5 +1,15 @@
 # Scripts
 
+## `serve.sh` — Start the local UI (use this)
+
+```bash
+./scripts/serve.sh
+./scripts/serve.sh --port 3001
+./scripts/serve.sh --no-open
+```
+
+Builds into `./target`, picks a free port if busy, opens the browser, and keeps the server running until Ctrl+C.
+
 ## `gh-auth.sh` — GitHub login helper
 
 Fixes invalid/expired `gh` tokens (e.g. keyring errors) without putting secrets in the repo.

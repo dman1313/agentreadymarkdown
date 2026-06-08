@@ -27,7 +27,9 @@
 | 20 | `BUILD_ROADMAP` | Build order, milestones, and cut-lines. |
 | 21 | `DECISIONS_Q107_Q261` | New product, UX, beta, credits, donation, and future anonymization decisions. |
 | 22 | `DECISIONS_EDGE_CASES` | Duplicate resolution, partial success definitions, memory, timeouts, encodings, security, and concurrency. |
+| 23 | `CONTENT_OWNERSHIP_AND_LEGAL` | Ownership warranty, DRM-free ebooks, disclaimer, export legal notice. |
 
+**`sdd/specs/`** — feature-level SDD (spec → plan → tasks per build). Active: `2026-06-07-ebook-agent-export`. See `sdd/README.md`.  
 **`docs/adr/`** — five important decisions.  
 **`docs/prompts/`** — build prompts for Codex/VibeCode and future OpenClaw agents.  
 **`docs/GLOSSARY.md`** — one source of truth for product and technical terms.  

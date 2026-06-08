@@ -1,10 +1,11 @@
 use std::collections::HashMap;
+use std::io;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
 use axum::{
-    extract::{Multipart, Path as AxumPath, Query, State},
+    extract::{DefaultBodyLimit, Multipart, Path as AxumPath, Query, State},
     http::{header, HeaderValue, StatusCode},
     response::{Html, IntoResponse, Response},
     routing::{get, post},
@@ -17,9 +18,13 @@ use uuid::Uuid;
 
 use agentready_core::job::{self, ConvertOptions, JobProgress};
 use agentready_core::models::JobResult;
+use agentready_core::text_quality;
 
 const MAX_FILES: usize = 25;
 const MAX_FILE_SIZE_MB: u64 = 50;
+// Axum defaults to 2 MB — raise to match V1 limits (25 × 50 MB + small overhead).
+const MAX_UPLOAD_BODY_BYTES: usize =
+    (MAX_FILES as u64 * MAX_FILE_SIZE_MB * 1024 * 1024 + 4 * 1024 * 1024) as usize;
 
 #[derive(Clone)]
 struct AppState {
@@ -65,17 +70,42 @@ async fn run_async(host: &str, port: u16) -> Result<(), Box<dyn std::error::Erro
 
     let app = Router::new()
         .route("/", get(index_page))
+        .route("/health", get(health))
         .route("/api/jobs", post(create_job))
         .route("/api/jobs/{job_id}", get(get_job).delete(delete_job))
         .route("/api/jobs/{job_id}/download", get(download_zip))
         .route("/api/jobs/{job_id}/preview", get(preview_file))
+        .layer(DefaultBodyLimit::max(MAX_UPLOAD_BODY_BYTES))
         .with_state(state);
 
     let addr: SocketAddr = format!("{host}:{port}").parse()?;
-    let listener = TcpListener::bind(addr).await?;
-    tracing::info!("AgentReady UI at http://{addr}");
+    let listener = match TcpListener::bind(addr).await {
+        Ok(l) => l,
+        Err(e) if e.kind() == io::ErrorKind::AddrInUse => {
+            return Err(format!(
+                "Port {port} is already in use on {host}. \
+                 Stop the other process (lsof -i :{port}) or run: \
+                 agentready serve --port {}",
+                port + 1
+            )
+            .into());
+        }
+        Err(e) => return Err(e.into()),
+    };
+
+    let url = format!("http://{addr}");
+    eprintln!();
+    eprintln!("  AgentReady UI running at {url}");
+    eprintln!("  Health check: {url}/health");
+    eprintln!("  Press Ctrl+C to stop.");
+    eprintln!();
+    tracing::info!("AgentReady UI at {url}");
     axum::serve(listener, app).await?;
     Ok(())
+}
+
+async fn health() -> &'static str {
+    "ok"
 }
 
 async fn index_page() -> Html<&'static str> {
@@ -94,6 +124,9 @@ async fn create_job(
     fs::create_dir_all(&input_dir).await?;
 
     let mut file_count = 0usize;
+    let mut skipped_empty = 0usize;
+    let mut skipped_type = 0usize;
+    let mut skipped_large = 0usize;
 
     while let Some(field) = multipart
         .next_field()
@@ -112,7 +145,8 @@ async fn create_job(
             .unwrap_or("")
             .to_lowercase();
 
-        if !matches!(ext.as_str(), "txt" | "md" | "csv" | "docx" | "pdf") {
+        if !matches!(ext.as_str(), "txt" | "md" | "csv" | "docx" | "pdf" | "epub") {
+            skipped_type += 1;
             continue;
         }
 
@@ -125,7 +159,13 @@ async fn create_job(
             .await
             .map_err(|e| AppError::bad_request(e.to_string()))?;
 
+        if bytes.is_empty() {
+            skipped_empty += 1;
+            continue;
+        }
+
         if bytes.len() as u64 > MAX_FILE_SIZE_MB * 1024 * 1024 {
+            skipped_large += 1;
             continue;
         }
 
@@ -136,9 +176,16 @@ async fn create_job(
 
     if file_count == 0 {
         let _ = fs::remove_dir_all(&base_dir).await;
-        return Err(AppError::bad_request(
-            "No supported files uploaded.".into(),
-        ));
+        let message = if skipped_empty > 0 {
+            "Uploaded file(s) were empty (0 bytes). If dragging from iCloud Drive, open the file in Preview first or copy it to Desktop, then upload again.".to_string()
+        } else if skipped_large > 0 {
+            format!("File(s) exceed the {MAX_FILE_SIZE_MB} MB limit.")
+        } else if skipped_type > 0 {
+            "Unsupported file type. Use TXT, Markdown, CSV, DOCX, PDF, or EPUB.".to_string()
+        } else {
+            "No supported files uploaded.".to_string()
+        };
+        return Err(AppError::bad_request(message));
     }
 
     let handle = Arc::new(JobHandle {
@@ -305,10 +352,16 @@ async fn preview_file(
         .await
         .map_err(|_| AppError::not_found("Markdown file missing"))?;
 
+    let body = if text_quality::looks_like_garbage(&content) {
+        text_quality::GARBAGE_PREVIEW_MESSAGE.to_string()
+    } else {
+        content
+    };
+
     Ok((
         StatusCode::OK,
         [(header::CONTENT_TYPE, HeaderValue::from_static("text/plain; charset=utf-8"))],
-        content,
+        body,
     ))
 }
 

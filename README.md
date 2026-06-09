@@ -67,6 +67,43 @@ See [`docs/09_MARKDOWN_STANDARD.md`](docs/09_MARKDOWN_STANDARD.md) for the outpu
 
 ---
 
+## Use with ChatGPT and other chat agents
+
+AgentReady does **not** include a chatbot. It prepares files so **you** can drop them into a bot’s knowledge base.
+
+**Three steps:**
+
+1. **Convert** your PDFs, Word docs, EPUBs, etc. in AgentReady (web UI or CLI).
+2. **Download** the zip and unzip it on your computer.
+3. **Upload to your agent’s knowledge base** — the files the bot should read.
+
+### What to upload
+
+| Upload this | Why |
+|-------------|-----|
+| **`documents/*.md`** | Main content — clean Markdown with headings and lists |
+| **`index.md`** | Tells the bot what each file is and links to them |
+| **`conversion-report.md`** | Optional — which files converted well vs failed |
+
+You usually **do not** need to upload the original PDFs again. The Markdown in `documents/` is what ChatGPT, Claude, and similar tools read best.
+
+### Where it works
+
+| Tool | Typical flow |
+|------|----------------|
+| **ChatGPT** (Project or Custom GPT) | Project → Add files → select `documents/*.md` and `index.md` |
+| **Claude** (Project) | Project knowledge → upload the same `.md` files |
+| **Other agents / RAG apps** | Point the knowledge folder at `documents/` or upload the zip contents |
+
+### Tips
+
+- Start with **`index.md`** so the bot knows the map of your export.
+- Prefer **Good** files from the conversion results; skip or fix **Failed** ones.
+- **DRM-free ebooks only** — encrypted Kindle/Adobe files are rejected by design.
+- AgentReady runs **locally**; you choose what gets uploaded to ChatGPT or any cloud bot.
+
+---
+
 ## Supported formats
 
 | Format | Extensions | Notes |

@@ -25,26 +25,51 @@
       line-height: 1.5;
       min-height: 100vh;
     }
-    .container { max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
-    h1 { margin: 0; font-size: 1.75rem; }
-    .subtitle { color: var(--muted); margin: 0.25rem 0 1.5rem; font-size: 0.9rem; }
+    .container { max-width: 680px; margin: 0 auto; padding: 1.75rem 1.25rem 3rem; }
+    header { margin-bottom: 1.25rem; }
+    h1 { margin: 0; font-size: 1.65rem; letter-spacing: -0.02em; }
+    .subtitle { color: var(--muted); margin: 0.2rem 0 0; font-size: 0.85rem; }
     .panel {
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 1.5rem;
+      padding: 1.35rem 1.35rem 1.5rem;
       backdrop-filter: blur(8px);
+      margin-bottom: 1rem;
     }
-    .tagline { font-size: 1.1rem; font-weight: 600; margin: 0 0 0.5rem; }
-    .description { color: var(--muted); margin: 0 0 1.25rem; font-size: 0.95rem; }
+    .panel + .panel { margin-top: 0; }
+    .tagline { font-size: 1.05rem; font-weight: 600; margin: 0 0 0.75rem; line-height: 1.35; }
+    .description { color: var(--muted); margin: 0 0 1rem; font-size: 0.92rem; line-height: 1.55; }
+    .description code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.85em;
+      background: rgba(0,0,0,0.25);
+      padding: 0.1em 0.35em;
+      border-radius: 4px;
+      color: var(--text);
+    }
+    .steps {
+      display: grid; gap: 0.5rem; margin: 0 0 1.15rem; padding: 0; list-style: none;
+    }
+    .steps li {
+      display: flex; gap: 0.65rem; align-items: flex-start;
+      font-size: 0.88rem; color: var(--muted); line-height: 1.45;
+    }
+    .steps li strong { color: var(--text); font-weight: 600; }
+    .step-num {
+      flex: 0 0 1.35rem; height: 1.35rem; border-radius: 999px;
+      background: rgba(91,159,212,0.18); color: var(--primary);
+      font-size: 0.75rem; font-weight: 700; line-height: 1.35rem; text-align: center;
+    }
     .upload-zone {
       border: 2px dashed var(--border);
       border-radius: 10px;
-      padding: 2.5rem 1rem;
+      padding: 2rem 1rem;
       text-align: center;
       cursor: pointer;
       transition: border-color 0.15s, background 0.15s;
       position: relative;
+      background: rgba(0,0,0,0.12);
     }
     /* Let drops hit the zone, not the text inside it */
     .upload-zone * { pointer-events: none; }
@@ -71,9 +96,24 @@
     }
     .upload-zone h2 { margin: 0.5rem 0 0.25rem; font-size: 1.1rem; }
     .upload-zone p { margin: 0; color: var(--muted); font-size: 0.9rem; }
-    .info { margin-top: 1.25rem; font-size: 0.85rem; color: var(--muted); }
-    .info strong { color: var(--text); }
-    .info div { margin-top: 0.35rem; }
+    .info {
+      margin-top: 1.15rem; padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.82rem; color: var(--muted); line-height: 1.5;
+    }
+    .info-grid {
+      display: grid; gap: 0.45rem; margin-bottom: 0.85rem;
+    }
+    .info-grid div { margin: 0; }
+    .info strong { color: var(--text); font-weight: 600; }
+    .legal-block {
+      margin-top: 0.85rem; padding: 0.85rem 0.95rem;
+      border-radius: 8px; background: rgba(0,0,0,0.18);
+      border: 1px solid var(--border);
+      font-size: 0.78rem; line-height: 1.5;
+    }
+    .legal-block + .legal-block { margin-top: 0.5rem; }
+    .legal-block a { color: var(--primary); }
     .hidden { display: none !important; }
     .center { text-align: center; padding: 3rem 1rem; }
     .spinner {
@@ -92,9 +132,11 @@
       height: 100%; background: var(--primary);
       transition: width 0.2s ease;
     }
-    table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
-    th, td { text-align: left; padding: 0.6rem 0.4rem; border-bottom: 1px solid var(--border); }
-    th { color: var(--muted); font-weight: 500; }
+    table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 0.65rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    th { color: var(--muted); font-weight: 500; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    td:first-child { word-break: break-word; max-width: 14rem; }
+    .table-wrap { overflow-x: auto; margin-top: 0.5rem; }
     .badge {
       display: inline-flex; align-items: center; gap: 0.25rem;
       padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.8rem;
@@ -112,17 +154,34 @@
     .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
     .btn-link { background: none; border: none; color: var(--primary); cursor: pointer; padding: 0; font-size: inherit; }
     .preview-body {
-      white-space: pre-wrap; font-family: system-ui, sans-serif;
-      font-size: 0.95rem; line-height: 1.6; max-height: 60vh; overflow: auto;
-      background: rgba(0,0,0,0.25); padding: 1rem; border-radius: 8px;
-      margin-top: 1rem;
+      font-size: 0.95rem; line-height: 1.65; max-height: 62vh; overflow: auto;
+      background: rgba(0,0,0,0.22); padding: 1.15rem 1.25rem; border-radius: 8px;
+      margin-top: 0.85rem; border: 1px solid var(--border);
     }
-    .preview-body.warn { color: var(--warn); font-family: system-ui, sans-serif; }
-    .preview-body h1, .preview-body h2, .preview-body h3 { margin: 1rem 0 0.5rem; }
-    .preview-body p { margin: 0.5rem 0; }
-    .preview-body code { font-family: ui-monospace, monospace; background: rgba(0,0,0,0.3); padding: 0.1rem 0.3rem; border-radius: 4px; }
-    .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
-    .legal-notice { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); font-size: 0.8rem; line-height: 1.45; }
+    .preview-body.warn {
+      white-space: pre-wrap; color: var(--warn); font-family: system-ui, sans-serif;
+    }
+    .preview-body h1 { font-size: 1.35rem; margin: 0 0 0.75rem; line-height: 1.25; }
+    .preview-body h2 { font-size: 1.12rem; margin: 1.25rem 0 0.5rem; color: var(--text); }
+    .preview-body h3 { font-size: 1rem; margin: 1rem 0 0.4rem; }
+    .preview-body p { margin: 0 0 0.75rem; color: var(--text); }
+    .preview-body ul { margin: 0 0 0.85rem 1.1rem; padding: 0; }
+    .preview-body li { margin: 0.25rem 0; }
+    .preview-body hr { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+    .preview-body blockquote {
+      margin: 0 0 0.85rem; padding: 0.5rem 0.75rem;
+      border-left: 3px solid var(--primary); color: var(--muted);
+      background: rgba(0,0,0,0.15); border-radius: 0 6px 6px 0;
+    }
+    .preview-body code { font-family: ui-monospace, monospace; background: rgba(0,0,0,0.3); padding: 0.1rem 0.3rem; border-radius: 4px; font-size: 0.88em; }
+    .results-hint { color: var(--muted); font-size: 0.85rem; margin: 0.35rem 0 0; line-height: 1.45; }
+    .results-hint code {
+      font-family: ui-monospace, monospace; font-size: 0.85em;
+      background: rgba(0,0,0,0.22); padding: 0.08em 0.3em; border-radius: 4px;
+    }
+    .section-title { margin: 0; font-size: 1.15rem; }
+    .flex-between { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; }
+    .legal-notice { margin: 0; }
     .muted-legal { color: var(--muted); }
   </style>
 </head>
@@ -136,10 +195,12 @@
     <section id="view-upload" class="panel upload-panel">
       <div id="file-drop-overlay" class="file-drop-overlay" aria-hidden="true">Drop files to upload</div>
       <p class="tagline">Is your data agent ready?</p>
-      <p class="description">
-        Upload your files, preview clean Markdown, and download an agent-ready zip.
-        Everything runs on your machine — no cloud processing.
-      </p>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span><strong>Upload</strong> PDF, Word, EPUB, and other supported files.</span></li>
+        <li><span class="step-num">2</span><span><strong>Preview</strong> clean Markdown before you export.</span></li>
+        <li><span class="step-num">3</span><span><strong>Download</strong> and drop <code>documents/*.md</code> into ChatGPT, Claude, or any agent knowledge base.</span></li>
+      </ol>
+      <p class="description">Everything runs on your machine — nothing is sent to the cloud for conversion.</p>
       <label id="drop-zone" class="upload-zone" for="file-input" tabindex="0" role="button" aria-label="Upload files">
         <h2>Upload your files</h2>
         <p>Drag and drop anywhere here, or click to browse</p>
@@ -151,12 +212,14 @@
         <ul id="selected-files-list"></ul>
       </div>
       <div class="info">
-        <div><strong>Supported:</strong> TXT, Markdown, CSV, DOCX, PDF, EPUB, MOBI, AZW3, AZW (DRM-free ebooks you own)</div>
-        <div><strong>Limits:</strong> Up to 25 files, 50 MB each</div>
-        <div>Processed locally in Rust — nothing leaves your computer.</div>
-        <div><strong>iCloud files:</strong> If drag-and-drop fails, open the file once in Preview or copy it to Desktop first.</div>
-        <div class="legal-notice"><strong>Your files only.</strong> Upload content you own or are authorized to convert. Ebooks must be <strong>DRM-free</strong> — AgentReady cannot remove copy protection and will reject encrypted books.</div>
-        <div class="legal-notice muted-legal">AgentReady is a conversion tool. HumanGoodAI does not verify ownership or legality of uploads and accepts no responsibility for how you obtain or use converted content. You are solely responsible for copyright and licensing compliance. <a href="https://github.com/dman1313/agentreadymarkdown/blob/main/docs/23_CONTENT_OWNERSHIP_AND_LEGAL.md" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">Full notice</a></div>
+        <div class="info-grid">
+          <div><strong>Supported:</strong> TXT, Markdown, CSV, DOCX, PDF, EPUB, MOBI, AZW3, AZW</div>
+          <div><strong>Limits:</strong> Up to 25 files · 50 MB each · DRM-free ebooks only</div>
+          <div><strong>Local:</strong> Processed in Rust on this computer</div>
+          <div><strong>iCloud tip:</strong> If drag-and-drop fails, copy files to Desktop first</div>
+        </div>
+        <div class="legal-block legal-notice"><strong>Your files only.</strong> Upload content you own or are authorized to convert. AgentReady cannot remove DRM from encrypted ebooks.</div>
+        <div class="legal-block legal-notice muted-legal">AgentReady is a conversion tool. You are solely responsible for copyright and licensing compliance. <a href="https://github.com/dman1313/agentreadymarkdown/blob/main/docs/23_CONTENT_OWNERSHIP_AND_LEGAL.md" target="_blank" rel="noopener noreferrer">Full legal notice</a></div>
       </div>
     </section>
 
@@ -169,21 +232,26 @@
 
     <section id="view-results" class="panel hidden">
       <div class="flex-between">
-        <h2 style="margin:0">Results</h2>
+        <div>
+          <h2 class="section-title">Results</h2>
+          <p class="results-hint">Preview Markdown, then download the zip. Upload <code>documents/</code> to your chat agent’s knowledge base.</p>
+        </div>
         <div class="actions">
           <button type="button" class="btn btn-secondary" id="btn-start-over">Start over</button>
           <a id="btn-download" class="btn btn-primary" href="#">Download zip</a>
         </div>
       </div>
+      <div class="table-wrap">
       <table>
-        <thead><tr><th>File</th><th>Type</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>File</th><th>Type</th><th>Status</th><th>Preview</th></tr></thead>
         <tbody id="results-body"></tbody>
       </table>
+      </div>
     </section>
 
     <section id="view-preview" class="panel hidden">
       <div class="flex-between">
-        <h2 id="preview-title" style="margin:0">Markdown preview</h2>
+        <h2 id="preview-title" class="section-title">Markdown preview</h2>
         <div class="actions">
           <button type="button" class="btn btn-secondary" id="btn-back-results">Back</button>
           <button type="button" class="btn btn-secondary" id="btn-copy">Copy Markdown</button>
@@ -421,26 +489,35 @@
     }
 
     function renderPreviewMarkdown(text) {
-      const escaped = escapeHtml(text);
-      return escaped
-        .split('\n')
-        .map((line) => {
-          const t = line.trim();
-          if (t === '---') return '<hr>';
-          if (t.startsWith('<!--') && t.endsWith('-->')) return '';
-          if (/^###### (.+)/.test(line)) return '<h6>' + line.slice(7) + '</h6>';
-          if (/^##### (.+)/.test(line)) return '<h5>' + line.slice(6) + '</h5>';
-          if (/^#### (.+)/.test(line)) return '<h4>' + line.slice(5) + '</h4>';
-          if (/^### (.+)/.test(line)) return '<h3>' + line.slice(4) + '</h3>';
-          if (/^## (.+)/.test(line)) return '<h2>' + line.slice(3) + '</h2>';
-          if (/^# (.+)/.test(line)) return '<h1>' + line.slice(2) + '</h1>';
-          if (t === '') return '';
-          if (/^> (.+)/.test(line)) return '<blockquote><p>' + line.slice(2) + '</p></blockquote>';
-          if (/^[-*] (.+)/.test(line)) return '<li>' + line.replace(/^[-*] /, '') + '</li>';
-          if (/^\d+\. (.+)/.test(line)) return '<li>' + line.replace(/^\d+\. /, '') + '</li>';
-          return '<p>' + line + '</p>';
-        })
-        .join('');
+      const lines = escapeHtml(text).split('\n');
+      const parts = [];
+      let listOpen = false;
+      function closeList() {
+        if (listOpen) { parts.push('</ul>'); listOpen = false; }
+      }
+      for (const line of lines) {
+        const t = line.trim();
+        if (t === '---') { closeList(); parts.push('<hr>'); continue; }
+        if (t.startsWith('<!--') && t.endsWith('-->')) continue;
+        if (/^###### (.+)/.test(line)) { closeList(); parts.push('<h6>' + line.slice(7) + '</h6>'); continue; }
+        if (/^##### (.+)/.test(line)) { closeList(); parts.push('<h5>' + line.slice(6) + '</h5>'); continue; }
+        if (/^#### (.+)/.test(line)) { closeList(); parts.push('<h4>' + line.slice(5) + '</h4>'); continue; }
+        if (/^### (.+)/.test(line)) { closeList(); parts.push('<h3>' + line.slice(4) + '</h3>'); continue; }
+        if (/^## (.+)/.test(line)) { closeList(); parts.push('<h2>' + line.slice(3) + '</h2>'); continue; }
+        if (/^# (.+)/.test(line)) { closeList(); parts.push('<h1>' + line.slice(2) + '</h1>'); continue; }
+        if (t === '') { closeList(); continue; }
+        if (/^> (.+)/.test(line)) { closeList(); parts.push('<blockquote><p>' + line.slice(2) + '</p></blockquote>'); continue; }
+        if (/^[-*] (.+)/.test(line) || /^\d+\. (.+)/.test(line)) {
+          if (!listOpen) { parts.push('<ul>'); listOpen = true; }
+          const item = line.replace(/^[-*] /, '').replace(/^\d+\. /, '');
+          parts.push('<li>' + item + '</li>');
+          continue;
+        }
+        closeList();
+        parts.push('<p>' + line + '</p>');
+      }
+      closeList();
+      return parts.join('');
     }
 
     async function preview(outputFile, name) {

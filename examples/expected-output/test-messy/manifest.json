@@ -1,0 +1,26 @@
+{
+  "files": [
+    {
+      "error_code": null,
+      "markdown_bytes": 48,
+      "output_file": "documents/badly-structured-note-txt.md",
+      "source_file": "badly-structured-note.txt",
+      "source_type": "txt",
+      "status": "good",
+      "user_message": null,
+      "warning": null
+    },
+    {
+      "error_code": null,
+      "markdown_bytes": 178,
+      "output_file": "documents/messy-volunteer-list-csv.md",
+      "source_file": "messy-volunteer-list.csv",
+      "source_type": "csv",
+      "status": "partial",
+      "user_message": "This file was converted, but the output may need review: 1 row(s) had a different number of columns than the header. Cells were padded to keep the table aligned.",
+      "warning": "1 row(s) had a different number of columns than the header. Cells were padded to keep the table aligned."
+    }
+  ],
+  "generated_by": "agentready-v1",
+  "version": "1.0"
+}

@@ -1,0 +1,3 @@
+Name,,Email,ExtraColumn
+Alice,Manager,alice@example.com,junk
+Bob,,bob@example.com,morejunk,too many columns

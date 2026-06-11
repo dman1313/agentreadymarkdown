@@ -1,3 +1,12 @@
-Hello, this is a simple clean note for testing.
-It has multiple lines.
-And it should be converted cleanly.
+---
+source_file: simple-note.txt
+source_type: txt
+converted_by: agentready-v1
+status: good
+---
+
+Hello, this isasimple clean note for testing.
+
+Ithas multiple lines.
+
+Andit should beconverted cleanly.

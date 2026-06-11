@@ -86,11 +86,10 @@ fn has_drm_exth(book: &Mobi) -> bool {
         EXTH_DRM_COMMERCE_ID,
         EXTH_DRM_EBOOKBASE_BOOK_ID,
     ] {
-        if let Some(values) = book.metadata.exth_record_at(position) {
-            if values.iter().any(|v| record_has_drm_value(v)) {
+        if let Some(values) = book.metadata.exth_record_at(position)
+            && values.iter().any(|v| record_has_drm_value(v)) {
                 return true;
             }
-        }
     }
     false
 }
@@ -100,11 +99,10 @@ fn record_has_drm_value(bytes: &[u8]) -> bool {
 }
 
 fn extract_body(book: &Mobi) -> Result<String, AgentReadyError> {
-    if let Some(kf8) = extract_kf8_text(book) {
-        if !kf8.trim().is_empty() {
+    if let Some(kf8) = extract_kf8_text(book)
+        && !kf8.trim().is_empty() {
             return Ok(kf8);
         }
-    }
 
     Ok(book
         .content_as_string()

@@ -1,0 +1,36 @@
+{
+  "files": [
+    {
+      "error_code": null,
+      "markdown_bytes": 122,
+      "output_file": "documents/volunteer-list-csv.md",
+      "source_file": "volunteer-list.csv",
+      "source_type": "csv",
+      "status": "good",
+      "user_message": null,
+      "warning": null
+    },
+    {
+      "error_code": null,
+      "markdown_bytes": 83,
+      "output_file": "documents/policy-md.md",
+      "source_file": "policy.md",
+      "source_type": "md",
+      "status": "good",
+      "user_message": null,
+      "warning": null
+    },
+    {
+      "error_code": null,
+      "markdown_bytes": 104,
+      "output_file": "documents/simple-note-txt.md",
+      "source_file": "simple-note.txt",
+      "source_type": "txt",
+      "status": "good",
+      "user_message": null,
+      "warning": null
+    }
+  ],
+  "generated_by": "agentready-v1",
+  "version": "1.0"
+}

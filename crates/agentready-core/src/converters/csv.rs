@@ -17,42 +17,81 @@ pub fn convert_csv(path: &Path) -> Result<ConversionResult, AgentReadyError> {
 
     let mut reader = ReaderBuilder::new()
         .has_headers(true)
+        .flexible(true)
         .from_reader(decoded.as_bytes());
 
-    let mut markdown = String::new();
+    let headers: Vec<String> = reader
+        .headers()
+        .map_err(|_| AgentReadyError::UserFacing(crate::models::ErrorCode::ConversionFailed))?
+        .iter()
+        .map(escape_cell)
+        .collect();
 
-    // Headers
-    if let Ok(headers) = reader.headers() {
-        let header_str = headers.iter().collect::<Vec<_>>().join(" | ");
-        markdown.push_str(&format!("| {} |\n", header_str));
-
-        let separator = headers.iter().map(|_| "---").collect::<Vec<_>>().join(" | ");
-        markdown.push_str(&format!("| {} |\n", separator));
-    }
-
-    // Rows
+    let mut rows: Vec<Vec<String>> = Vec::new();
+    let mut ragged_rows = 0usize;
+    let mut skipped_rows = 0usize;
     for result in reader.records() {
-        if let Ok(record) = result {
-            let row_str = record.iter().collect::<Vec<_>>().join(" | ");
-            markdown.push_str(&format!("| {} |\n", row_str));
-        } else {
-            return Err(AgentReadyError::UserFacing(
-                crate::models::ErrorCode::ConversionFailed,
-            ));
+        match result {
+            Ok(record) => {
+                let row: Vec<String> = record.iter().map(escape_cell).collect();
+                if row.len() != headers.len() {
+                    ragged_rows += 1;
+                }
+                rows.push(row);
+            }
+            Err(_) => skipped_rows += 1,
         }
     }
 
-    if markdown.trim().is_empty() {
-        return Err(AgentReadyError::UserFacing(
-            crate::models::ErrorCode::NoReadableText,
-        ));
+    // Pad every row (and the header) to the widest row so the table stays valid.
+    let width = rows
+        .iter()
+        .map(|r| r.len())
+        .chain(std::iter::once(headers.len()))
+        .max()
+        .unwrap_or(0)
+        .max(1);
+
+    let mut markdown = String::new();
+    markdown.push_str(&format!("| {} |\n", padded(&headers, width).join(" | ")));
+    markdown.push_str(&format!("| {} |\n", vec!["---"; width].join(" | ")));
+    for row in &rows {
+        markdown.push_str(&format!("| {} |\n", padded(row, width).join(" | ")));
     }
+
+    let warning = if skipped_rows > 0 {
+        Some(format!(
+            "{} row(s) could not be read and were skipped. Please review the output against the original CSV in data/.",
+            skipped_rows
+        ))
+    } else if ragged_rows > 0 {
+        Some(format!(
+            "{} row(s) had a different number of columns than the header. Cells were padded to keep the table aligned.",
+            ragged_rows
+        ))
+    } else {
+        None
+    };
 
     Ok(ConversionResult {
         markdown,
-        warning: None,
+        warning,
         raw_data: Some(raw_bytes),
     })
+}
+
+/// Makes a CSV cell safe inside a Markdown table row.
+fn escape_cell(cell: &str) -> String {
+    cell.replace('|', "\\|")
+        .replace(['\r', '\n'], " ")
+        .trim()
+        .to_string()
+}
+
+fn padded(row: &[String], width: usize) -> Vec<String> {
+    let mut out = row.to_vec();
+    out.resize(width, String::new());
+    out
 }
 
 /// Decodes a CSV file to UTF-8 String, stripping BOM and handling legacy encodings.
@@ -134,6 +173,45 @@ mod tests {
         let (dir, path) = write_temp_csv(csv);
         let result = convert_csv(&path).unwrap();
         assert_eq!(result.raw_data.unwrap().as_slice(), csv.as_slice());
+        drop(dir);
+    }
+
+    #[test]
+    fn ragged_rows_convert_with_warning() {
+        let csv = b"Name,,Email,ExtraColumn\nAlice,Manager,alice@example.com,junk\nBob,,bob@example.com,morejunk,too many columns\n";
+        let (dir, path) = write_temp_csv(csv);
+        let result = convert_csv(&path).unwrap();
+
+        assert!(result.warning.is_some(), "ragged CSV should carry a warning");
+        // Bob's row has 5 columns, so every row is padded to 5 cells.
+        assert!(result.markdown.contains("| Name |  | Email | ExtraColumn |  |"));
+        assert!(result.markdown.contains("| Alice | Manager | alice@example.com | junk |  |"));
+        assert!(result.markdown.contains("| Bob |  | bob@example.com | morejunk | too many columns |"));
+        drop(dir);
+    }
+
+    #[test]
+    fn short_rows_are_padded() {
+        let csv = b"a,b,c\n1\n";
+        let (dir, path) = write_temp_csv(csv);
+        let result = convert_csv(&path).unwrap();
+        assert!(result.warning.is_some());
+        assert!(result.markdown.contains("| 1 |  |  |"));
+        drop(dir);
+    }
+
+    #[test]
+    fn escapes_pipes_and_newlines_in_cells() {
+        let csv = b"name,desc\nAlice,\"a|b\"\nBob,\"line1\nline2\"\n";
+        let (dir, path) = write_temp_csv(csv);
+        let result = convert_csv(&path).unwrap();
+
+        assert!(result.markdown.contains("a\\|b"));
+        assert!(result.markdown.contains("| line1 line2 |"));
+        // Every line of the table must still be a single Markdown row.
+        for line in result.markdown.lines() {
+            assert!(line.starts_with('|') && line.ends_with('|'), "broken row: {line}");
+        }
         drop(dir);
     }
 

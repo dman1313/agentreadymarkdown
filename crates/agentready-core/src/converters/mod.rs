@@ -7,6 +7,7 @@ pub mod mobi;
 pub mod markdown;
 pub mod pdf;
 pub mod plain_text_to_markdown;
+pub mod pptx;
 pub mod txt;
 pub mod xlsx;
 

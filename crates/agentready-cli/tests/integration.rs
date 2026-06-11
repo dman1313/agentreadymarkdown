@@ -314,6 +314,65 @@ fn xlsx_status_in_manifest_is_good() {
     assert_eq!(json["files"][0]["source_type"], "xlsx");
 }
 
+#[test]
+fn convert_minimal_pptx() {
+    let bin = agentready_bin();
+    let root = project_root();
+    let input = root.join("examples/sample-input/ebooks/minimal.pptx");
+
+    let dir = TempDir::new().unwrap();
+    let output = dir.path().join("output");
+
+    let status = Command::new(&bin)
+        .args(["convert", input.to_str().unwrap(), "--output", output.to_str().unwrap()])
+        .current_dir(&root)
+        .status()
+        .unwrap();
+    assert!(status.success(), "PPTX convert should exit 0");
+
+    let doc = output.join("documents/minimal-pptx.md");
+    assert!(doc.exists(), "minimal-pptx.md missing");
+    let content = fs::read_to_string(doc).unwrap();
+
+    // Three slides
+    assert!(content.contains("## Slide 1"));
+    assert!(content.contains("## Slide 2"));
+    assert!(content.contains("## Slide 3"));
+
+    // Slide content
+    assert!(content.contains("- Introduction"));
+    assert!(content.contains("- Welcome to AgentReady"));
+    assert!(content.contains("- Try it"));
+
+    // Speaker notes preserved
+    assert!(content.contains("> **Notes:**"));
+    assert!(content.contains("> Show the before/after demo"));
+}
+
+#[test]
+fn pptx_status_in_manifest_is_good() {
+    let bin = agentready_bin();
+    let root = project_root();
+    let input = root.join("examples/sample-input/ebooks/minimal.pptx");
+
+    let dir = TempDir::new().unwrap();
+    let output = dir.path().join("output");
+
+    let result = Command::new(&bin)
+        .args(["convert", input.to_str().unwrap(), "--output", output.to_str().unwrap(), "--json"])
+        .current_dir(&root)
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&result.stdout);
+    let json: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
+    assert_eq!(json["status"], "success");
+    assert_eq!(json["summary"]["total_files"], 1);
+    assert_eq!(json["summary"]["converted"], 1);
+    assert_eq!(json["files"][0]["status"], "good");
+    assert_eq!(json["files"][0]["source_type"], "pptx");
+}
+
 /// Run manually when you have a DRM-free MOBI on disk:
 /// `AGENTREADY_MOBI_SAMPLE=/path/to/book.mobi cargo test -p agentready convert_mobi_sample -- --ignored`
 #[test]

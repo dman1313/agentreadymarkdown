@@ -222,6 +222,7 @@ fn convert_with_timeout(
             "azw3" => converters::azw3::convert_azw3(&path),
             "azw" => converters::azw3::convert_azw(&path),
             "xlsx" => converters::xlsx::convert_xlsx(&path),
+            "pptx" => converters::pptx::convert_pptx(&path),
             _ => Err(AgentReadyError::UserFacing(ErrorCode::UnsupportedFile)),
         };
         let _ = tx.send(result);

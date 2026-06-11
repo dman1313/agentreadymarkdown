@@ -241,7 +241,7 @@ mod tests {
         assert_eq!(err.to_error_code(), ErrorCode::FileTooLarge);
         assert_eq!(err.user_message(), ErrorCode::FileTooLarge.user_message());
 
-        let io_err = AgentReadyError::Io(std::io::Error::new(std::io::ErrorKind::Other, "boom"));
+        let io_err = AgentReadyError::Io(std::io::Error::other("boom"));
         assert_eq!(io_err.to_error_code(), ErrorCode::ConversionFailed);
     }
 }

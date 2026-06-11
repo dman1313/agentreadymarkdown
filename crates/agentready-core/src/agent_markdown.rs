@@ -15,7 +15,7 @@ pub fn normalize_for_agents(markdown: &str) -> String {
         let cleaned: String = if in_fence {
             line.to_string()
         } else {
-            strip_invisible(&line.trim_end().to_string())
+            strip_invisible(line.trim_end())
         };
 
         let fence = cleaned.trim_start().starts_with("```");

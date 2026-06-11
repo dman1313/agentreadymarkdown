@@ -76,6 +76,19 @@ pub fn create_export(
         final_results.push(converted);
     }
 
+    // Populate user_message before metadata is written so the on-disk
+    // report and manifest carry it too, not just the in-memory result.
+    for res in &mut final_results {
+        if res.result.user_message.is_none() {
+            if let Some(ref code) = res.result.error_code {
+                res.result.user_message = Some(code.user_message().to_string());
+            } else if res.result.status == FileStatus::Partial
+                && let Some(ref w) = res.result.warning {
+                    res.result.user_message = Some(format!("This file was converted, but the output may need review: {}", w));
+                }
+        }
+    }
+
     // 3. Write metadata files
     write_metadata_files(output_folder, &final_results)?;
 
@@ -98,23 +111,13 @@ pub fn create_export(
 
     let mut export_files = Vec::new();
 
-    for mut res in final_results {
+    for res in final_results {
         match res.result.status {
             FileStatus::Good => converted += 1,
             FileStatus::Partial => partial += 1,
             FileStatus::Failed => failed += 1,
             FileStatus::Unsupported => unsupported += 1,
             FileStatus::Cancelled => failed += 1,
-        }
-        // Populate user_message from error_code if not already set
-        if res.result.user_message.is_none() {
-            if let Some(ref code) = res.result.error_code {
-                res.result.user_message = Some(code.user_message().to_string());
-            } else if res.result.status == FileStatus::Partial {
-                if let Some(ref w) = res.result.warning {
-                    res.result.user_message = Some(format!("This file was converted, but the output may need review: {}", w));
-                }
-            }
         }
         export_files.push(res.result);
     }
@@ -461,6 +464,30 @@ mod tests {
         create_export(&["input".to_string()], &output, None, results).unwrap();
         let report = fs::read_to_string(output.join("conversion-report.md")).unwrap();
         assert!(report.contains("| File | Status |"));
+    }
+
+    #[test]
+    fn report_on_disk_includes_partial_message() {
+        let dir = tempfile::tempdir().unwrap();
+        let output = dir.path().join("output");
+        let input = dir.path().join("input");
+        fs::create_dir_all(&input).unwrap();
+
+        let mut partial = make_file_result("messy.csv", "csv", FileStatus::Partial);
+        partial.warning = Some("2 row(s) had a different number of columns".to_string());
+
+        let results = vec![
+            ConvertedFile { result: partial, markdown: "| a |\n| --- |\n".into(), raw_data: None },
+        ];
+
+        create_export(&["input".to_string()], &output, None, results).unwrap();
+        let report = fs::read_to_string(output.join("conversion-report.md")).unwrap();
+        assert!(
+            report.contains("the output may need review"),
+            "partial message missing from on-disk report: {report}"
+        );
+        let manifest = fs::read_to_string(output.join("manifest.json")).unwrap();
+        assert!(manifest.contains("the output may need review"));
     }
 
     #[test]

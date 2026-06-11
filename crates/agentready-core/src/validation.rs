@@ -16,7 +16,9 @@ pub fn validate_file(path: &Path, file_size: u64) -> Result<(), AgentReadyError>
         .unwrap_or_default();
 
     match ext.as_str() {
-        "txt" | "md" | "csv" | "docx" | "pdf" | "epub" | "mobi" | "azw3" | "azw" => Ok(()),
+        "txt" | "md" | "csv" | "docx" | "pdf" | "epub" | "mobi" | "azw3" | "azw" | "xlsx" => {
+            Ok(())
+        }
         _ => Err(AgentReadyError::UserFacing(ErrorCode::UnsupportedFile)),
     }
 }
@@ -28,7 +30,9 @@ mod tests {
 
     #[test]
     fn accepts_supported_extensions() {
-        for ext in &["txt", "md", "csv", "docx", "pdf", "epub", "mobi", "azw3", "azw"] {
+        for ext in &[
+            "txt", "md", "csv", "docx", "pdf", "epub", "mobi", "azw3", "azw", "xlsx",
+        ] {
             let path = PathBuf::from(format!("test.{}", ext));
             assert!(validate_file(&path, 1024).is_ok(), "Extension .{} should be supported", ext);
         }
@@ -36,7 +40,7 @@ mod tests {
 
     #[test]
     fn rejects_unsupported_extensions() {
-        for ext in &["exe", "png", "jpg", "zip", "js", "html", "xlsx", ""] {
+        for ext in &["exe", "png", "jpg", "zip", "js", "html", "pptx", "rtf", ""] {
             let path = PathBuf::from(format!("test.{}", ext));
             assert_eq!(validate_file(&path, 1024).unwrap_err().to_error_code(), ErrorCode::UnsupportedFile, "Extension .{} should be unsupported", ext);
         }

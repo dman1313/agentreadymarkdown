@@ -8,6 +8,7 @@ pub mod markdown;
 pub mod pdf;
 pub mod plain_text_to_markdown;
 pub mod txt;
+pub mod xlsx;
 
 use std::fs::File;
 use std::io::Read;

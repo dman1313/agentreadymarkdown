@@ -42,7 +42,7 @@ pub enum ErrorCode {
 impl ErrorCode {
     pub fn user_message(&self) -> &'static str {
         match self {
-            ErrorCode::UnsupportedFile => "This file type is not supported in AgentReady V1. Try TXT, Markdown, CSV, DOCX, PDF, EPUB, MOBI, AZW3, or AZW.",
+            ErrorCode::UnsupportedFile => "This file type is not supported in AgentReady V1. Try TXT, Markdown, CSV, DOCX, XLSX, PDF, EPUB, MOBI, AZW3, or AZW.",
             ErrorCode::FileTooLarge => "This file is larger than the V1 file size limit.",
             ErrorCode::NoReadableText => "AgentReady could not find readable text in this file. OCR is not supported in V1.",
             ErrorCode::PasswordProtected => "This file appears to be password-protected, encrypted, or DRM-protected. AgentReady only supports DRM-free files you own or are authorized to convert. It cannot remove copy protection.",

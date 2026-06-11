@@ -250,6 +250,70 @@ fn convert_minimal_epub() {
     assert!(output.join("index.md").exists(), "index.md missing");
 }
 
+#[test]
+fn convert_minimal_xlsx() {
+    let bin = agentready_bin();
+    let root = project_root();
+    let input = root.join("examples/sample-input/ebooks/minimal.xlsx");
+
+    let dir = TempDir::new().unwrap();
+    let output = dir.path().join("output");
+
+    let status = Command::new(&bin)
+        .args(["convert", input.to_str().unwrap(), "--output", output.to_str().unwrap()])
+        .current_dir(&root)
+        .status()
+        .unwrap();
+    assert!(status.success(), "XLSX convert should exit 0");
+
+    let doc = output.join("documents/minimal-xlsx.md");
+    assert!(doc.exists(), "minimal-xlsx.md missing");
+    let content = fs::read_to_string(doc).unwrap();
+
+    // Two sheets should be present
+    assert!(content.contains("## Students"), "should have Students sheet");
+    assert!(content.contains("## Grades"), "should have Grades sheet");
+
+    // Sheet 1 content
+    assert!(content.contains("| name | age | city |"));
+    assert!(content.contains("| Alice | 30 | Paris |"));
+    assert!(content.contains("| Carol | 28 | Lille |"));
+
+    // Sheet 2 content
+    assert!(content.contains("| subject | score |"));
+    assert!(content.contains("| Math | 95 |"));
+
+    // Raw bytes preserved in data/ folder
+    let data_dir = output.join("data");
+    assert!(data_dir.exists(), "data/ folder missing (XLSX raw bytes should be preserved)");
+}
+
+#[test]
+fn xlsx_status_in_manifest_is_good() {
+    let bin = agentready_bin();
+    let root = project_root();
+    let input = root.join("examples/sample-input/ebooks/minimal.xlsx");
+
+    let dir = TempDir::new().unwrap();
+    let output = dir.path().join("output");
+
+    let result = Command::new(&bin)
+        .args(["convert", input.to_str().unwrap(), "--output", output.to_str().unwrap(), "--json"])
+        .current_dir(&root)
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&result.stdout);
+    let json: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
+    assert_eq!(json["status"], "success");
+    assert_eq!(json["summary"]["total_files"], 1);
+    assert_eq!(json["summary"]["converted"], 1);
+    assert_eq!(json["summary"]["failed"], 0);
+    assert_eq!(json["summary"]["unsupported"], 0);
+    assert_eq!(json["files"][0]["status"], "good");
+    assert_eq!(json["files"][0]["source_type"], "xlsx");
+}
+
 /// Run manually when you have a DRM-free MOBI on disk:
 /// `AGENTREADY_MOBI_SAMPLE=/path/to/book.mobi cargo test -p agentready convert_mobi_sample -- --ignored`
 #[test]

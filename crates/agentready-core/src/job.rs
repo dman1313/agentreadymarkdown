@@ -221,6 +221,7 @@ fn convert_with_timeout(
             "mobi" => converters::mobi::convert_mobi(&path),
             "azw3" => converters::azw3::convert_azw3(&path),
             "azw" => converters::azw3::convert_azw(&path),
+            "xlsx" => converters::xlsx::convert_xlsx(&path),
             _ => Err(AgentReadyError::UserFacing(ErrorCode::UnsupportedFile)),
         };
         let _ = tx.send(result);

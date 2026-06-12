@@ -1,0 +1,578 @@
+use std::fs;
+use std::path::Path;
+
+use crate::converters::ConversionResult;
+use crate::models::{AgentReadyError, ErrorCode};
+
+/// Convert an HTML file to agent-ready Markdown.
+///
+/// Text-only extraction that strips tags and recovers basic structure:
+/// - `<h1>`..`<h6>` → `#`..`######`
+/// - `<p>`, `<div>`, `<section>` → paragraph breaks (double newline)
+/// - `<br>` → single newline
+/// - `<li>` → `- ` (unordered) or `1. ` (ordered, via `<ol>` tracking)
+/// - `<strong>`, `<b>` → `**`
+/// - `<em>`, `<i>` → `*`
+/// - `<a href="...">text</a>` → `[text](...)`
+/// - `<code>` → backticks
+/// - `<pre>` → fenced code block
+/// - `<blockquote>` → `> ` prefix
+/// - `<hr>` → `---`
+/// - HTML entities decoded by quick-xml
+/// - `<script>`, `<style>`, `<head>` contents silently dropped
+/// - All other tags: text preserved, tag stripped
+pub fn convert_html(path: &Path) -> Result<ConversionResult, AgentReadyError> {
+    let bytes = fs::read(path).map_err(AgentReadyError::Io)?;
+
+    let text = match std::str::from_utf8(&bytes) {
+        Ok(s) => s.to_string(),
+        Err(_) => {
+            // Fall back to lossy decode
+            let (cow, _, _) = encoding_rs::UTF_8.decode(&bytes);
+            cow.into_owned()
+        }
+    };
+
+    let markdown = extract_text(&text);
+
+    if markdown.trim().is_empty() {
+        return Err(AgentReadyError::UserFacing(ErrorCode::NoReadableText));
+    }
+
+    Ok(ConversionResult {
+        markdown,
+        warning: None,
+        raw_data: None,
+    })
+}
+
+/// Tags whose entire content (including children) should be dropped.
+const SKIP_TAGS: &[&str] = &["script", "style", "head", "noscript", "template"];
+
+/// Block-level tags that get their own paragraph break.
+const BLOCK_TAGS: &[&str] = &[
+    "p", "div", "section", "article", "main", "header", "footer", "nav", "aside",
+    "h1", "h2", "h3", "h4", "h5", "h6",
+    "ul", "ol", "li", "table", "tr", "td", "th",
+    "blockquote", "pre", "figure", "figcaption", "details", "summary",
+    "form", "fieldset",
+];
+
+fn is_skip_tag(tag: &str) -> bool {
+    SKIP_TAGS.contains(&tag)
+}
+
+fn is_block_tag(tag: &str) -> bool {
+    BLOCK_TAGS.contains(&tag)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum ListKind {
+    Unordered,
+    Ordered,
+}
+
+#[derive(Debug, Default)]
+struct State {
+    out: String,
+    /// Stack of tag names for matching open/close. Used to track skip zones
+    /// and list nesting.
+    tag_stack: Vec<String>,
+    /// Track whether we're inside a `<pre>` block (preserve whitespace).
+    in_pre: usize,
+    /// Track list context: ordered vs unordered + counter for ordered.
+    list_stack: Vec<ListKind>,
+    /// Track ordered list item counters.
+    ol_counters: Vec<usize>,
+    /// Whether the next text/raw emission should be preceded by a single space.
+    /// Reset whenever we emit a separator (newline, space, block break, marker
+    /// that already provides spacing).
+    needs_space: bool,
+    /// Inline formatting stack: bold, italic, code.
+    bold_depth: usize,
+    italic_depth: usize,
+    code_depth: usize,
+    /// Current blockquote depth.
+    bq_depth: usize,
+    /// Track anchor href for link rendering.
+    pending_href: Option<String>,
+}
+
+impl State {
+    fn is_in_skip(&self) -> bool {
+        self.tag_stack.iter().any(|t| is_skip_tag(t))
+    }
+
+    /// Emit a space if the next emission would otherwise run into existing text.
+    /// Returns true if a space was inserted.
+    fn ensure_space(&mut self) {
+        if self.needs_space
+            && !self.out.is_empty()
+            && !self.out.ends_with(' ')
+            && !self.out.ends_with('\n')
+        {
+            self.out.push(' ');
+        }
+        self.needs_space = false;
+    }
+
+    fn emit(&mut self, text: &str) {
+        if self.is_in_skip() {
+            return;
+        }
+        if self.in_pre > 0 {
+            self.out.push_str(text);
+            self.needs_space = false;
+            return;
+        }
+        let trimmed = text.trim();
+        if trimmed.is_empty() {
+            // Pure whitespace — capture the intent for the next emit.
+            let had_leading = text.trim_start() != text;
+            if had_leading {
+                self.needs_space = true;
+            }
+            return;
+        }
+        // If the chunk has leading whitespace and we have non-whitespace
+        // output already, separate with a single space.
+        let had_leading = text.len() - text.trim_start().len() > 0;
+        if had_leading
+            && !self.out.is_empty()
+            && !self.out.ends_with(' ')
+            && !self.out.ends_with('\n')
+        {
+            self.out.push(' ');
+            self.needs_space = false;
+        }
+        // Blockquote prefix on fresh lines.
+        if self.bq_depth > 0
+            && (self.out.is_empty() || self.out.ends_with('\n'))
+        {
+            for _ in 0..self.bq_depth {
+                self.out.push_str("> ");
+            }
+        }
+        self.out.push_str(trimmed);
+        // Trailing whitespace in the chunk becomes a pending separator.
+        let had_trailing = text.len() - text.trim_end().len() > 0;
+        self.needs_space = had_trailing;
+    }
+
+    fn emit_raw(&mut self, text: &str) {
+        if self.is_in_skip() {
+            return;
+        }
+        // For raw marker characters, no leading-space insertion — callers
+        // control spacing via ensure_space() and needs_space before/after.
+        self.out.push_str(text);
+        self.needs_space = false;
+    }
+
+    fn block_break(&mut self) {
+        if self.is_in_skip() {
+            return;
+        }
+        if !self.out.is_empty() && !self.out.ends_with("\n\n") {
+            if self.out.ends_with('\n') {
+                self.out.push('\n');
+            } else {
+                self.out.push_str("\n\n");
+            }
+        }
+        self.needs_space = false;
+    }
+}
+
+fn extract_text(html: &str) -> String {
+    let mut reader = quick_xml::Reader::from_str(html);
+    reader.config_mut().allow_unmatched_ends = true;
+
+    let mut state = State::default();
+    let mut buf = Vec::new();
+
+    loop {
+        use quick_xml::events::Event;
+
+        buf.clear();
+        let event = reader.read_event_into(&mut buf);
+        match event {
+            Ok(Event::Start(ref e)) => {
+                let tag = String::from_utf8_lossy(e.name().as_ref()).to_lowercase();
+                handle_open_tag(&mut state, &tag, e.attributes());
+            }
+            Ok(Event::Empty(ref e)) => {
+                let tag = String::from_utf8_lossy(e.name().as_ref()).to_lowercase();
+                handle_self_closing(&mut state, &tag);
+            }
+            Ok(Event::End(ref _e)) => {
+                // Pop the tag stack to find the matching open tag.
+                if let Some(closed_tag) = state.tag_stack.pop() {
+                    handle_close_tag(&mut state, &closed_tag);
+                }
+            }
+            Ok(Event::Text(ref e)) => {
+                let text = e.decode().unwrap_or_default();
+                state.emit(text.as_ref());
+            }
+            Ok(Event::CData(ref e)) => {
+                let text = String::from_utf8_lossy(e.as_ref());
+                state.emit(&text);
+            }
+            Ok(Event::Eof) => break,
+            Err(_) => break, // Malformed HTML — stop gracefully
+            _ => {}
+        }
+    }
+
+    // Clean up trailing whitespace.
+    state.out.trim_end().to_string()
+}
+
+fn handle_open_tag(state: &mut State, tag: &str, attrs: quick_xml::events::attributes::Attributes) {
+    state.tag_stack.push(tag.to_string());
+
+    if is_skip_tag(tag) {
+        return;
+    }
+
+    if is_block_tag(tag) {
+        state.block_break();
+    }
+
+    match tag {
+        "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
+            let level = tag.as_bytes()[1] - b'0';
+            state.emit_raw(&format!("{} ", "#".repeat(level as usize)));
+        }
+        "br" => {
+            // <br> in HTML is often not self-closed — handle in both places.
+            state.emit_raw("\n");
+        }
+        "hr" => {
+            // <hr> same situation. Emit the separator and consume the close.
+            state.block_break();
+            state.emit_raw("---");
+            state.block_break();
+        }
+        "strong" | "b" => {
+            state.bold_depth += 1;
+            if state.bold_depth == 1 {
+                state.ensure_space();
+                state.emit_raw("**");
+            }
+        }
+        "em" | "i" => {
+            state.italic_depth += 1;
+            if state.italic_depth == 1 {
+                state.ensure_space();
+                state.emit_raw("*");
+            }
+        }
+        "code" => {
+            if state.in_pre == 0 {
+                state.code_depth += 1;
+                if state.code_depth == 1 {
+                    state.ensure_space();
+                    state.emit_raw("`");
+                }
+            }
+        }
+        "pre" => {
+            state.in_pre += 1;
+            state.emit_raw("```\n");
+        }
+        "blockquote" => {
+            state.bq_depth += 1;
+        }
+        "a" => {
+            // Extract href and open the markdown link.
+            state.ensure_space();
+            state.emit_raw("[");
+            for attr in attrs.flatten() {
+                if attr.key.as_ref() == b"href" {
+                    let href = String::from_utf8_lossy(&attr.value).to_string();
+                    state.pending_href = Some(href);
+                    break;
+                }
+            }
+        }
+        "ul" => {
+            state.list_stack.push(ListKind::Unordered);
+        }
+        "ol" => {
+            state.list_stack.push(ListKind::Ordered);
+            state.ol_counters.push(1);
+        }
+        "li" => {
+            // Emit list marker.
+            if let Some(kind) = state.list_stack.last() {
+                match kind {
+                    ListKind::Unordered => state.emit_raw("- "),
+                    ListKind::Ordered => {
+                        if let Some(counter) = state.ol_counters.last_mut() {
+                            let n = *counter;
+                            *counter += 1;
+                            state.emit_raw(&format!("{}. ", n));
+                        }
+                    }
+                }
+            }
+        }
+        "img" => {
+            // Self-closing in practice, but handle here too.
+            let mut alt = String::from("image");
+            let mut src = String::new();
+            for attr in attrs.flatten() {
+                match attr.key.as_ref() {
+                    b"alt" => alt = String::from_utf8_lossy(&attr.value).to_string(),
+                    b"src" => src = String::from_utf8_lossy(&attr.value).to_string(),
+                    _ => {}
+                }
+            }
+            if !src.is_empty() {
+                state.emit(&format!("![{}]({})", alt, src));
+            }
+        }
+        _ => {}
+    }
+}
+
+fn handle_self_closing(state: &mut State, tag: &str) {
+    if state.is_in_skip() {
+        return;
+    }
+    match tag {
+        "br" => {
+            state.emit_raw("\n");
+        }
+        "hr" => {
+            state.block_break();
+            state.emit_raw("---");
+            state.block_break();
+        }
+        "img" => {
+            // Handled in open tag since quick-xml may emit Empty for <img>.
+            // We don't have attributes here though, so this is a no-op fallback.
+        }
+        _ => {}
+    }
+}
+
+fn handle_close_tag(state: &mut State, tag: &str) {
+    if is_skip_tag(tag) {
+        return;
+    }
+
+    match tag {
+        "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
+            state.block_break();
+        }
+        "strong" | "b" => {
+            if state.bold_depth > 0 {
+                state.bold_depth -= 1;
+                if state.bold_depth == 0 {
+                    state.emit_raw("**");
+                    // The close marker is "fresh" text — next emit will
+                    // add a separating space if its text has leading ws.
+                }
+            }
+        }
+        "em" | "i" => {
+            if state.italic_depth > 0 {
+                state.italic_depth -= 1;
+                if state.italic_depth == 0 {
+                    state.emit_raw("*");
+                }
+            }
+        }
+        "code" => {
+            if state.in_pre == 0 && state.code_depth > 0 {
+                state.code_depth -= 1;
+                if state.code_depth == 0 {
+                    state.emit_raw("`");
+                }
+            }
+        }
+        "pre" => {
+            if state.in_pre > 0 {
+                state.in_pre -= 1;
+                state.emit_raw("\n```");
+                state.block_break();
+            }
+        }
+        "blockquote" => {
+            if state.bq_depth > 0 {
+                state.bq_depth -= 1;
+            }
+            state.block_break();
+        }
+        "a" => {
+            if let Some(href) = state.pending_href.take() {
+                state.emit_raw(&format!("]({})", href));
+                // We need to wrap the text that was just emitted.
+                // Retroactively insert the `[` before the link text.
+                // Simpler: just emit the closing bracket. The opening `[` is
+                // tricky without lookahead, so we use a simplified approach:
+                // We emit `[text](href)` pattern by inserting `[` at the end.
+                // Actually, for simplicity, let's just close the markdown link.
+            }
+        }
+        "p" | "div" | "section" | "article" => {
+            state.block_break();
+        }
+        "li" => {
+            // block_break on the next <li> open handles spacing; no-op here.
+        }
+        "ul" => {
+            state.list_stack.pop();
+            state.block_break();
+        }
+        "ol" => {
+            state.list_stack.pop();
+            state.ol_counters.pop();
+            state.block_break();
+        }
+        "tr" => {
+            state.emit_raw("\n");
+        }
+        "td" | "th" => {
+            state.emit_raw(" | ");
+        }
+        _ => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::TempDir;
+
+    #[test]
+    fn strips_tags_and_extracts_text() {
+        let html = "<html><body><p>Hello <b>world</b></p></body></html>";
+        let md = extract_text(html);
+        assert!(md.contains("Hello"), "got: {:?}", md);
+        assert!(md.contains("**world**"), "got: {:?}", md);
+    }
+
+    #[test]
+    fn headings_become_markdown() {
+        let html = "<h1>Title</h1><h2>Subtitle</h2><h3>Section</h3>";
+        let md = extract_text(html);
+        assert!(md.contains("# Title"), "got: {:?}", md);
+        assert!(md.contains("## Subtitle"), "got: {:?}", md);
+        assert!(md.contains("### Section"), "got: {:?}", md);
+    }
+
+    #[test]
+    fn drops_script_and_style() {
+        let html =
+            "<html><head><style>body{}</style></head><body><script>alert(1)</script>Hello</body></html>";
+        let md = extract_text(html);
+        assert!(!md.contains("alert"), "script content leaked: {:?}", md);
+        assert!(!md.contains("body"), "style content leaked: {:?}", md);
+        assert!(md.contains("Hello"), "got: {:?}", md);
+    }
+
+    #[test]
+    fn converts_links() {
+        let html = r#"<p><a href="https://example.com">Click here</a></p>"#;
+        let md = extract_text(html);
+        assert!(
+            md.contains("Click here") && md.contains("https://example.com"),
+            "got: {:?}",
+            md
+        );
+    }
+
+    #[test]
+    fn converts_lists() {
+        let html = "<ul><li>one</li><li>two</li></ul><ol><li>first</li><li>second</li></ol>";
+        let md = extract_text(html);
+        assert!(md.contains("- one"), "got: {:?}", md);
+        assert!(md.contains("- two"), "got: {:?}", md);
+        assert!(md.contains("1. first"), "got: {:?}", md);
+        assert!(md.contains("2. second"), "got: {:?}", md);
+    }
+
+    #[test]
+    fn pre_becomes_code_block() {
+        let html = "<pre>fn main() {\n    println!(\"hi\");\n}</pre>";
+        let md = extract_text(html);
+        assert!(md.contains("```"), "got: {:?}", md);
+        assert!(md.contains("fn main()"), "got: {:?}", md);
+    }
+
+    #[test]
+    fn blockquote_becomes_prefix() {
+        let html = "<blockquote>This is a quote</blockquote>";
+        let md = extract_text(html);
+        assert!(md.contains("> This is a quote") || md.contains(">This is a quote"), "got: {:?}", md);
+    }
+
+    #[test]
+    fn hr_becomes_separator() {
+        let html = "<p>Above</p><hr><p>Below</p>";
+        let md = extract_text(html);
+        assert!(md.contains("---"), "got: {:?}", md);
+        assert!(md.contains("Above"), "got: {:?}", md);
+        assert!(md.contains("Below"), "got: {:?}", md);
+    }
+
+    #[test]
+    fn preserves_inline_formatting() {
+        let html = "<p><em>italic</em> and <strong>bold</strong> and <code>code</code></p>";
+        let md = extract_text(html);
+        assert!(md.contains("*italic* and"), "whitespace lost: {:?}", md);
+        assert!(md.contains("and **bold** and"), "whitespace lost: {:?}", md);
+        assert!(md.contains("and `code`"), "whitespace lost: {:?}", md);
+    }
+
+    #[test]
+    fn rejects_empty_html() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("empty.html");
+        let mut f = std::fs::File::create(&path).unwrap();
+        f.write_all(b"<html><body></body></html>").unwrap();
+
+        let err = convert_html(&path).unwrap_err();
+        match err {
+            AgentReadyError::UserFacing(ErrorCode::NoReadableText) => (),
+            other => panic!("expected NoReadableText, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn converts_full_html_file() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("page.html");
+        let mut f = std::fs::File::create(&path).unwrap();
+        f.write_all(
+            br#"<!DOCTYPE html>
+<html>
+<head><title>Test</title></head>
+<body>
+<h1>Welcome</h1>
+<p>This is a <strong>test</strong> page.</p>
+<ul><li>Item A</li><li>Item B</li></ul>
+</body>
+</html>"#,
+        )
+        .unwrap();
+
+        let result = convert_html(&path).expect("convert should succeed");
+        assert!(result.markdown.contains("# Welcome"), "got: {}", result.markdown);
+        assert!(result.markdown.contains("**test**"), "got: {}", result.markdown);
+        assert!(result.markdown.contains("- Item A"), "got: {}", result.markdown);
+    }
+
+    #[test]
+    fn handles_malformed_html_gracefully() {
+        let html = "<p>Start <b>bold <i>both</b> italic</i> end";
+        let md = extract_text(html);
+        // Should not panic and should recover some text.
+        assert!(md.contains("Start"), "got: {:?}", md);
+    }
+}

@@ -2,6 +2,7 @@ pub mod azw3;
 pub mod csv;
 pub mod docx;
 pub mod epub;
+pub mod html;
 pub mod kindle;
 pub mod mobi;
 pub mod markdown;

@@ -160,7 +160,11 @@ impl State {
                 self.out.push_str("> ");
             }
         }
-        self.out.push_str(trimmed);
+        // Outside <pre>, HTML collapses internal whitespace (spaces, tabs,
+        // source newlines) to a single space — otherwise wrapped source lines
+        // leak hard breaks or stray indentation into the Markdown.
+        let collapsed = trimmed.split_whitespace().collect::<Vec<_>>().join(" ");
+        self.out.push_str(&collapsed);
         // Trailing whitespace in the chunk becomes a pending separator.
         let had_trailing = text.len() - text.trim_end().len() > 0;
         self.needs_space = had_trailing;
@@ -682,6 +686,20 @@ mod tests {
         let html = r#"<p><a href="">empty</a></p>"#;
         let md = extract_text(html);
         assert_eq!(md, "empty", "got: {:?}", md);
+    }
+
+    #[test]
+    fn collapses_whitespace_in_text() {
+        let html = "<p>Hello    world\n   wrapped   here</p>";
+        let md = extract_text(html);
+        assert_eq!(md, "Hello world wrapped here", "got: {:?}", md);
+    }
+
+    #[test]
+    fn pre_still_preserves_whitespace() {
+        let html = "<pre>fn main() {\n    let x = 1;\n}</pre>";
+        let md = extract_text(html);
+        assert!(md.contains("    let x = 1;"), "pre whitespace lost: {:?}", md);
     }
 
     #[test]

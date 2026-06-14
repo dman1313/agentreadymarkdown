@@ -236,7 +236,8 @@ fn handle_open_tag(state: &mut State, tag: &str, attrs: quick_xml::events::attri
         return;
     }
 
-    if is_block_tag(tag) {
+    // List items share one block; only break before ul/ol containers.
+    if is_block_tag(tag) && tag != "li" {
         state.block_break();
     }
 
@@ -422,7 +423,10 @@ fn handle_close_tag(state: &mut State, tag: &str) {
             state.block_break();
         }
         "li" => {
-            // block_break on the next <li> open handles spacing; no-op here.
+            // Single newline between items; block_break on <ul>/<ol> handles outer spacing.
+            if !state.out.is_empty() && !state.out.ends_with('\n') {
+                state.emit_raw("\n");
+            }
         }
         "ul" => {
             state.list_stack.pop();
@@ -495,6 +499,17 @@ mod tests {
         assert!(md.contains("- two"), "got: {:?}", md);
         assert!(md.contains("1. first"), "got: {:?}", md);
         assert!(md.contains("2. second"), "got: {:?}", md);
+        // Adjacent list items: single newline, not a blank line.
+        assert!(
+            md.contains("- one\n- two"),
+            "expected single newline between items: {:?}",
+            md
+        );
+        assert!(
+            !md.contains("- one\n\n- two"),
+            "extra blank line between li items: {:?}",
+            md
+        );
     }
 
     #[test]

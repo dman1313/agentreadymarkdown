@@ -287,15 +287,22 @@ fn handle_open_tag(state: &mut State, tag: &str, attrs: quick_xml::events::attri
             state.bq_depth += 1;
         }
         "a" => {
-            // Extract href and open the markdown link.
-            state.ensure_space();
-            state.emit_raw("[");
+            // Only open a markdown link when there is a usable href; otherwise
+            // anchors like `<a name="x">` would leave a dangling `[`.
+            let mut href = None;
             for attr in attrs.flatten() {
                 if attr.key.as_ref() == b"href" {
-                    let href = String::from_utf8_lossy(&attr.value).to_string();
-                    state.pending_href = Some(href);
+                    let value = String::from_utf8_lossy(&attr.value).trim().to_string();
+                    if !value.is_empty() {
+                        href = Some(value);
+                    }
                     break;
                 }
+            }
+            if let Some(href) = href {
+                state.ensure_space();
+                state.emit_raw("[");
+                state.pending_href = Some(href);
             }
         }
         "ul" => {
@@ -581,6 +588,22 @@ mod tests {
         assert!(result.markdown.contains("# Welcome"), "got: {}", result.markdown);
         assert!(result.markdown.contains("**test**"), "got: {}", result.markdown);
         assert!(result.markdown.contains("- Item A"), "got: {}", result.markdown);
+    }
+
+    #[test]
+    fn anchor_without_href_has_no_dangling_bracket() {
+        let html = r#"<p>See <a name="section">this section</a> below.</p>"#;
+        let md = extract_text(html);
+        assert!(md.contains("this section"), "got: {:?}", md);
+        assert!(!md.contains('['), "dangling bracket emitted: {:?}", md);
+        assert!(!md.contains(']'), "dangling bracket emitted: {:?}", md);
+    }
+
+    #[test]
+    fn anchor_with_empty_href_renders_as_plain_text() {
+        let html = r#"<p><a href="">empty</a></p>"#;
+        let md = extract_text(html);
+        assert_eq!(md, "empty", "got: {:?}", md);
     }
 
     #[test]

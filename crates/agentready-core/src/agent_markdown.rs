@@ -48,7 +48,9 @@ pub fn normalize_for_agents(markdown: &str) -> String {
         if !out.is_empty() && !out.ends_with('\n') {
             out.push('\n');
         }
-        out.push_str(cleaned.trim());
+        // `cleaned` already has trailing whitespace stripped; keep leading
+        // indentation so nested lists and indented blocks survive export.
+        out.push_str(&cleaned);
         out.push('\n');
     }
 
@@ -122,6 +124,21 @@ mod tests {
         let out = normalize_for_agents(md);
         assert!(out.contains("    let x  =  1;"));
         assert!(out.contains("End."));
+    }
+
+    #[test]
+    fn preserves_list_indentation() {
+        let md = "- a\n  - b\n    - c\n";
+        let out = normalize_for_agents(md);
+        assert!(out.contains("\n  - b"), "nested indent lost: {:?}", out);
+        assert!(out.contains("\n    - c"), "deep indent lost: {:?}", out);
+    }
+
+    #[test]
+    fn still_strips_trailing_whitespace() {
+        let md = "alpha   \nbeta\t\n";
+        let out = normalize_for_agents(md);
+        assert_eq!(out, "alpha\nbeta\n");
     }
 
     #[test]

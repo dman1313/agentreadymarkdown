@@ -241,6 +241,16 @@ fn extract_text(html: &str) -> String {
     state.out.trim_end().to_string()
 }
 
+/// Spacing before a `<ul>`/`<ol>`: a paragraph break for a top-level list, or
+/// just a fresh line for a nested list so it sits under its parent item.
+fn open_list_spacing(state: &mut State) {
+    if state.list_stack.is_empty() {
+        state.block_break();
+    } else if !state.out.is_empty() && !state.out.ends_with('\n') {
+        state.emit_raw("\n");
+    }
+}
+
 fn handle_open_tag(state: &mut State, tag: &str, attrs: quick_xml::events::attributes::Attributes) {
     state.tag_stack.push(tag.to_string());
 
@@ -248,8 +258,9 @@ fn handle_open_tag(state: &mut State, tag: &str, attrs: quick_xml::events::attri
         return;
     }
 
-    // List items share one block; only break before ul/ol containers.
-    if is_block_tag(tag) && tag != "li" {
+    // List items share one block. ul/ol manage their own spacing (so nested
+    // lists indent instead of starting a new paragraph).
+    if is_block_tag(tag) && tag != "li" && tag != "ul" && tag != "ol" {
         state.block_break();
     }
 
@@ -318,13 +329,20 @@ fn handle_open_tag(state: &mut State, tag: &str, attrs: quick_xml::events::attri
             }
         }
         "ul" => {
+            open_list_spacing(state);
             state.list_stack.push(ListKind::Unordered);
         }
         "ol" => {
+            open_list_spacing(state);
             state.list_stack.push(ListKind::Ordered);
             state.ol_counters.push(1);
         }
         "li" => {
+            // Indent nested items two spaces per level beyond the first.
+            let depth = state.list_stack.len();
+            if depth > 1 {
+                state.emit_raw(&"  ".repeat(depth - 1));
+            }
             // Emit list marker.
             if let Some(kind) = state.list_stack.last() {
                 match kind {
@@ -468,12 +486,16 @@ fn handle_close_tag(state: &mut State, tag: &str) {
         }
         "ul" => {
             state.list_stack.pop();
-            state.block_break();
+            if state.list_stack.is_empty() {
+                state.block_break();
+            }
         }
         "ol" => {
             state.list_stack.pop();
             state.ol_counters.pop();
-            state.block_break();
+            if state.list_stack.is_empty() {
+                state.block_break();
+            }
         }
         "table" => {
             if state.in_table > 0 {
@@ -660,6 +682,28 @@ mod tests {
         let html = r#"<p><a href="">empty</a></p>"#;
         let md = extract_text(html);
         assert_eq!(md, "empty", "got: {:?}", md);
+    }
+
+    #[test]
+    fn nested_lists_indent() {
+        let html = "<ul><li>a<ul><li>b</li><li>c</li></ul></li><li>d</li></ul>";
+        let md = extract_text(html);
+        assert!(md.contains("- a"), "got: {:?}", md);
+        assert!(md.contains("\n  - b"), "nested item not indented: {:?}", md);
+        assert!(md.contains("\n  - c"), "nested item not indented: {:?}", md);
+        assert!(md.contains("\n- d"), "outer item lost: {:?}", md);
+        // No blank line should split the nested list from its parent.
+        assert!(!md.contains("- a\n\n"), "nested list broke into paragraph: {:?}", md);
+    }
+
+    #[test]
+    fn nested_ordered_list_restarts_numbering() {
+        let html = "<ol><li>one<ol><li>inner-a</li><li>inner-b</li></ol></li><li>two</li></ol>";
+        let md = extract_text(html);
+        assert!(md.contains("1. one"), "got: {:?}", md);
+        assert!(md.contains("\n  1. inner-a"), "got: {:?}", md);
+        assert!(md.contains("\n  2. inner-b"), "got: {:?}", md);
+        assert!(md.contains("\n2. two"), "outer numbering wrong: {:?}", md);
     }
 
     #[test]

@@ -53,7 +53,7 @@ const SKIP_TAGS: &[&str] = &["script", "style", "head", "noscript", "template"];
 const BLOCK_TAGS: &[&str] = &[
     "p", "div", "section", "article", "main", "header", "footer", "nav", "aside",
     "h1", "h2", "h3", "h4", "h5", "h6",
-    "ul", "ol", "li", "table", "tr", "td", "th",
+    "ul", "ol", "li", "table",
     "blockquote", "pre", "figure", "figcaption", "details", "summary",
     "form", "fieldset",
 ];
@@ -96,6 +96,13 @@ struct State {
     bq_depth: usize,
     /// Track anchor href for link rendering.
     pending_href: Option<String>,
+    /// Table nesting depth. While > 0, cells/rows render as GFM pipes and
+    /// block breaks are suppressed so rows stay on one line.
+    in_table: usize,
+    /// Index of the current row within the active table (0 = header row).
+    table_row_index: usize,
+    /// Cells seen in the current row (drives the header separator width).
+    table_cell_count: usize,
 }
 
 impl State {
@@ -171,6 +178,11 @@ impl State {
 
     fn block_break(&mut self) {
         if self.is_in_skip() {
+            return;
+        }
+        // Inside a table, rows manage their own newlines; a paragraph break
+        // would split a single row across multiple lines.
+        if self.in_table > 0 {
             return;
         }
         if !self.out.is_empty() && !self.out.ends_with("\n\n") {
@@ -327,6 +339,25 @@ fn handle_open_tag(state: &mut State, tag: &str, attrs: quick_xml::events::attri
                 }
             }
         }
+        "table" => {
+            state.in_table += 1;
+            state.table_row_index = 0;
+        }
+        "tr" => {
+            if state.in_table > 0 {
+                if !state.out.is_empty() && !state.out.ends_with('\n') {
+                    state.out.push('\n');
+                }
+                state.table_cell_count = 0;
+                state.needs_space = false;
+            }
+        }
+        "td" | "th" => {
+            if state.in_table > 0 {
+                state.emit_raw("| ");
+                state.table_cell_count += 1;
+            }
+        }
         "img" => {
             // Self-closing in practice, but handle here too.
             let mut alt = String::from("image");
@@ -444,11 +475,36 @@ fn handle_close_tag(state: &mut State, tag: &str) {
             state.ol_counters.pop();
             state.block_break();
         }
+        "table" => {
+            if state.in_table > 0 {
+                state.in_table -= 1;
+            }
+            state.block_break();
+        }
         "tr" => {
-            state.emit_raw("\n");
+            if state.in_table > 0 {
+                // Close the row, then inject a GFM header separator after row 0.
+                state.emit_raw("|\n");
+                if state.table_row_index == 0 {
+                    let cols = state.table_cell_count.max(1);
+                    let mut sep = String::new();
+                    for _ in 0..cols {
+                        sep.push_str("| --- ");
+                    }
+                    sep.push_str("|\n");
+                    state.emit_raw(&sep);
+                }
+                state.table_row_index += 1;
+            } else {
+                state.emit_raw("\n");
+            }
         }
         "td" | "th" => {
-            state.emit_raw(" | ");
+            if state.in_table > 0 {
+                state.emit_raw(" ");
+            } else {
+                state.emit_raw(" | ");
+            }
         }
         _ => {}
     }
@@ -604,6 +660,25 @@ mod tests {
         let html = r#"<p><a href="">empty</a></p>"#;
         let md = extract_text(html);
         assert_eq!(md, "empty", "got: {:?}", md);
+    }
+
+    #[test]
+    fn table_becomes_gfm_table() {
+        let html = "<table><tr><th>Name</th><th>Age</th></tr><tr><td>Alice</td><td>30</td></tr></table>";
+        let md = extract_text(html);
+        assert!(md.contains("| Name | Age |"), "header row malformed: {:?}", md);
+        assert!(
+            md.contains("| --- | --- |"),
+            "missing header separator: {:?}",
+            md
+        );
+        assert!(
+            md.contains("| Alice | 30 |"),
+            "data row malformed: {:?}",
+            md
+        );
+        // Rows must not be split across paragraphs.
+        assert!(!md.contains("Name\n\nAge"), "row was shattered: {:?}", md);
     }
 
     #[test]

@@ -141,17 +141,18 @@ impl State {
             }
             return;
         }
-        // If the chunk has leading whitespace and we have non-whitespace
-        // output already, separate with a single space.
+        // Separate from prior output with a single space when this chunk has
+        // leading whitespace OR a previous chunk left a pending space (e.g. a
+        // trailing space before an href-less anchor or a <span>).
         let had_leading = text.len() - text.trim_start().len() > 0;
-        if had_leading
+        if (had_leading || self.needs_space)
             && !self.out.is_empty()
             && !self.out.ends_with(' ')
             && !self.out.ends_with('\n')
         {
             self.out.push(' ');
-            self.needs_space = false;
         }
+        self.needs_space = false;
         // Blockquote prefix on fresh lines.
         if self.bq_depth > 0
             && (self.out.is_empty() || self.out.ends_with('\n'))
@@ -686,6 +687,20 @@ mod tests {
         let html = r#"<p><a href="">empty</a></p>"#;
         let md = extract_text(html);
         assert_eq!(md, "empty", "got: {:?}", md);
+    }
+
+    #[test]
+    fn space_preserved_before_href_less_anchor() {
+        let html = r#"<p>foo and <a name="x">bar</a> baz</p>"#;
+        let md = extract_text(html);
+        assert_eq!(md, "foo and bar baz", "got: {:?}", md);
+    }
+
+    #[test]
+    fn space_preserved_around_unknown_inline_tags() {
+        let html = "<p>foo <span>bar</span> baz</p>";
+        let md = extract_text(html);
+        assert_eq!(md, "foo bar baz", "got: {:?}", md);
     }
 
     #[test]

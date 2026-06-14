@@ -339,8 +339,17 @@ fn handle_open_tag(state: &mut State, tag: &str, attrs: quick_xml::events::attri
         }
         "ol" => {
             open_list_spacing(state);
+            let mut start = 1usize;
+            for attr in attrs.flatten() {
+                if attr.key.as_ref() == b"start" {
+                    if let Ok(n) = String::from_utf8_lossy(&attr.value).trim().parse::<usize>() {
+                        start = n;
+                    }
+                    break;
+                }
+            }
             state.list_stack.push(ListKind::Ordered);
-            state.ol_counters.push(1);
+            state.ol_counters.push(start);
         }
         "li" => {
             // Indent nested items two spaces per level beyond the first.
@@ -727,6 +736,14 @@ mod tests {
         assert!(md.contains("\n- d"), "outer item lost: {:?}", md);
         // No blank line should split the nested list from its parent.
         assert!(!md.contains("- a\n\n"), "nested list broke into paragraph: {:?}", md);
+    }
+
+    #[test]
+    fn ordered_list_respects_start_attribute() {
+        let html = r#"<ol start="5"><li>five</li><li>six</li></ol>"#;
+        let md = extract_text(html);
+        assert!(md.contains("5. five"), "got: {:?}", md);
+        assert!(md.contains("6. six"), "got: {:?}", md);
     }
 
     #[test]

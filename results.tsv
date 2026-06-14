@@ -3,3 +3,8 @@ commit	branch	unit_pass	integration_pass	integration_total	status	description
 8b72890	feature/html	96	15	18	keep	fix HTML list spacing: single newline between li items not blank line
 409b18a	feature/html	98	15	18	keep	drop dangling bracket for href-less/empty anchors (+2 unit tests)
 b5d252f	feature/html	99	15	18	keep	emit valid GFM tables from HTML (leading pipe + header separator)
+aa31288	feature/html	101	15	18	keep	preserve leading indentation in normalize_for_agents (+2 unit tests)
+3dfd238	feature/html	103	15	18	keep	indent nested HTML lists (2 spaces/level, survives normalize)
+86a0212	feature/html	105	15	18	keep	collapse whitespace in HTML text nodes (no stray breaks/indent)
+58c594f	feature/html	107	15	18	keep	honor pending space in emit() (fix dropped space before href-less anchors/spans)
+6da37e4	feature/html	108	15	18	keep	honor <ol start> attribute for ordered-list numbering

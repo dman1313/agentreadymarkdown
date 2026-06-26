@@ -213,7 +213,7 @@ fn convert_with_timeout(
     let handle = std::thread::spawn(move || {
         let result = match ext.as_str() {
             "txt" => converters::txt::convert_txt(&path),
-            "md" => converters::markdown::convert_markdown(&path),
+            "md" | "markdown" => converters::markdown::convert_markdown(&path),
             "csv" => converters::csv::convert_csv(&path),
             "docx" => converters::docx::convert_docx(&path),
             "pdf" => converters::pdf::convert_pdf(&path),

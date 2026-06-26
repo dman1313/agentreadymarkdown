@@ -18,6 +18,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Convert documents to agent-ready Markdown
     Convert {
         /// Input files or directories
         #[arg(required = true)]

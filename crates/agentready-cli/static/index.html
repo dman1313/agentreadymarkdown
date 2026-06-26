@@ -3,488 +3,866 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AgentReady</title>
+  <title>AgentReady — Agent-ready Markdown converter</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⚡</text></svg>" />
   <style>
     :root {
-      --bg: #0f1419;
-      --panel: rgba(255,255,255,0.06);
-      --border: rgba(255,255,255,0.12);
-      --text: #e7ecf3;
-      --muted: #9aa8b8;
+      --bg: #0a1220;
+      --panel: rgba(255,255,255,0.04);
+      --panel-hover: rgba(255,255,255,0.065);
+      --border: rgba(255,255,255,0.09);
+      --border-strong: rgba(255,255,255,0.16);
+      --text: #dde8f4;
+      --text-soft: #a8bdd4;
+      --muted: #627a93;
       --primary: #5b9fd4;
+      --primary-dim: rgba(91,159,212,0.13);
+      --primary-bright: #74aedc;
       --success: #3dba7a;
+      --success-dim: rgba(61,186,122,0.13);
       --warn: #e6b84a;
+      --warn-dim: rgba(230,184,74,0.13);
       --error: #e06c6c;
+      --error-dim: rgba(224,108,108,0.13);
+      --r: 12px;
+      --r-sm: 8px;
+      --r-xs: 6px;
     }
-    * { box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      margin: 0;
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
       background: var(--bg);
+      background-image: radial-gradient(ellipse 100% 50% at 50% 0%, rgba(91,159,212,0.07) 0%, transparent 55%);
       color: var(--text);
-      line-height: 1.5;
+      line-height: 1.55;
       min-height: 100vh;
     }
-    .container { max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
-    h1 { margin: 0; font-size: 1.75rem; }
-    .subtitle { color: var(--muted); margin: 0.25rem 0 1.5rem; font-size: 0.9rem; }
-    .panel {
+    .container { max-width: 780px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; }
+
+    /* ── Header ── */
+    .site-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2.25rem; }
+    .logo-mark {
+      width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--primary) 0%, #3a7cba 100%);
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+      box-shadow: 0 2px 12px rgba(91,159,212,0.3);
+    }
+    .logo-text h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
+    .logo-text p { font-size: 0.775rem; color: var(--muted); }
+
+    /* ── Card ── */
+    .card {
       background: var(--panel);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.5rem;
-      backdrop-filter: blur(8px);
-    }
-    .tagline { font-size: 1.1rem; font-weight: 600; margin: 0 0 0.5rem; }
-    .description { color: var(--muted); margin: 0 0 1.25rem; font-size: 0.95rem; }
-    .upload-zone {
-      border: 2px dashed var(--border);
-      border-radius: 10px;
-      padding: 2.5rem 1rem;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
+      border-radius: var(--r);
+      padding: 1.75rem;
       position: relative;
+      overflow: hidden;
     }
-    /* Let drops hit the zone, not the text inside it */
+    .card::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(160deg, rgba(255,255,255,0.025) 0%, transparent 50%);
+    }
+
+    /* ── Upload ── */
+    .card-eyebrow { font-size: 0.8125rem; font-weight: 600; color: var(--primary); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 0.35rem; }
+    .card-title { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.015em; margin-bottom: 0.3rem; }
+    .card-sub { font-size: 0.875rem; color: var(--muted); margin-bottom: 1.5rem; line-height: 1.5; }
+
+    .upload-zone {
+      display: block; position: relative;
+      border: 2px dashed var(--border-strong);
+      border-radius: var(--r-sm);
+      padding: 2.75rem 1.5rem 2.5rem;
+      text-align: center; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
     .upload-zone * { pointer-events: none; }
-    .upload-zone:hover, .upload-zone.drag-active,
-    .upload-panel.drag-active .upload-zone {
+    .upload-zone:hover, .upload-zone.drag-active {
       border-color: var(--primary);
-      background: rgba(91,159,212,0.08);
+      background: var(--primary-dim);
     }
-    .upload-panel { position: relative; }
-    .upload-panel.drag-active { outline: 2px solid rgba(91,159,212,0.35); outline-offset: 4px; border-radius: 12px; }
-    .file-drop-overlay {
+    .upload-icon {
+      width: 52px; height: 52px; margin: 0 auto 1rem;
+      background: var(--primary-dim); border-radius: 14px;
+      display: flex; align-items: center; justify-content: center; font-size: 24px;
+    }
+    .upload-zone h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.3rem; }
+    .upload-zone p { font-size: 0.875rem; color: var(--muted); }
+    .upload-zone .kbd {
+      display: inline-block; margin-top: 0.85rem;
+      padding: 0.2rem 0.55rem; border-radius: var(--r-xs);
+      background: rgba(255,255,255,0.07); border: 1px solid var(--border);
+      font-size: 0.75rem; color: var(--muted); font-family: ui-monospace, monospace;
+    }
+
+    .drop-overlay {
       display: none; position: absolute; inset: 0; z-index: 20;
-      align-items: center; justify-content: center; border-radius: 12px;
-      background: rgba(91,159,212,0.18); border: 2px dashed var(--primary);
+      align-items: center; justify-content: center; gap: 0.5rem;
+      border-radius: var(--r); background: rgba(91,159,212,0.1);
+      border: 2px solid var(--primary); color: var(--primary);
       font-weight: 600; font-size: 1.05rem; pointer-events: none;
     }
-    .file-drop-overlay.active { display: flex; pointer-events: auto; }
-    .selected-files { margin-top: 1rem; font-size: 0.9rem; }
-    .selected-files ul { margin: 0.4rem 0 0; padding-left: 1.2rem; color: var(--text); }
-    .selected-files.empty { display: none; }
+    .drop-overlay.active { display: flex; pointer-events: auto; }
+
     .file-input-hidden {
       position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
       overflow: hidden; clip: rect(0,0,0,0); border: 0;
     }
-    .upload-zone h2 { margin: 0.5rem 0 0.25rem; font-size: 1.1rem; }
-    .upload-zone p { margin: 0; color: var(--muted); font-size: 0.9rem; }
-    .info { margin-top: 1.25rem; font-size: 0.85rem; color: var(--muted); }
-    .info strong { color: var(--text); }
-    .info div { margin-top: 0.35rem; }
-    .hidden { display: none !important; }
-    .center { text-align: center; padding: 3rem 1rem; }
+
+    .selected-files { margin-top: 1rem; }
+    .selected-files.empty { display: none; }
+    .files-label {
+      font-size: 0.75rem; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;
+    }
+    .file-chips { display: flex; flex-wrap: wrap; gap: 0.375rem; list-style: none; }
+    .file-chip {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+      border-radius: 999px; padding: 0.275rem 0.7rem 0.275rem 0.55rem;
+      font-size: 0.8rem; color: var(--text-soft);
+    }
+    .file-chip-size { color: var(--muted); font-size: 0.74rem; }
+
+    /* ── Info ── */
+    .info-box { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+    .info-row { display: flex; gap: 0.4rem; font-size: 0.8125rem; color: var(--muted); margin-top: 0.4rem; }
+    .info-row:first-child { margin-top: 0; }
+    .info-row strong { color: var(--text-soft); font-weight: 500; }
+    .info-row a { color: var(--primary); text-decoration: none; }
+    .info-row a:hover { text-decoration: underline; }
+    .info-legal {
+      margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border);
+      font-size: 0.775rem; color: var(--muted); line-height: 1.55;
+    }
+    .info-legal a { color: var(--primary); text-decoration: none; }
+    .info-legal a:hover { text-decoration: underline; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.5rem 1.1rem; border-radius: var(--r-xs);
+      font-size: 0.875rem; font-weight: 500; font-family: inherit;
+      border: none; cursor: pointer; text-decoration: none;
+      transition: background 0.12s, opacity 0.12s, transform 0.1s;
+      white-space: nowrap; line-height: 1;
+    }
+    .btn:active { transform: scale(0.975); }
+    .btn-primary { background: var(--primary); color: #07101d; font-weight: 700; }
+    .btn-primary:hover { background: var(--primary-bright); }
+    .btn-secondary {
+      background: rgba(255,255,255,0.07); color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.11); }
+    .btn-ghost { background: none; border: none; color: var(--primary); padding: 0; font-size: inherit; font-weight: 500; }
+    .btn-ghost:hover { color: var(--primary-bright); }
+
+    /* ── Spinner / Converting ── */
+    .converting-wrap { text-align: center; padding: 3rem 1rem 3.5rem; }
     .spinner {
-      width: 40px; height: 40px; margin: 0 auto 1rem;
-      border: 3px solid var(--border);
-      border-top-color: var(--primary);
-      border-radius: 50%;
-      animation: spin 0.9s linear infinite;
+      width: 44px; height: 44px; margin: 0 auto 1.5rem;
+      border: 3px solid var(--border); border-top-color: var(--primary);
+      border-radius: 50%; animation: spin 0.85s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .progress-bar {
-      height: 6px; background: var(--border); border-radius: 3px;
-      margin-top: 1rem; overflow: hidden;
+    .spinner-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.4rem; }
+    .spinner-sub { font-size: 0.875rem; color: var(--muted); min-height: 1.4em; }
+    .progress-track {
+      height: 5px; background: var(--border); border-radius: 999px;
+      margin-top: 1.5rem; overflow: hidden;
     }
-    .progress-bar > div {
-      height: 100%; background: var(--primary);
-      transition: width 0.2s ease;
+    .progress-fill {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, var(--primary), var(--primary-bright));
+      transition: width 0.25s ease;
     }
-    table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
-    th, td { text-align: left; padding: 0.6rem 0.4rem; border-bottom: 1px solid var(--border); }
-    th { color: var(--muted); font-weight: 500; }
+
+    /* ── Results ── */
+    .results-top {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem;
+    }
+    .results-top h2 { font-size: 1.1rem; font-weight: 700; }
+    .header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+    .stats-row { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .stat-chip {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      padding: 0.28rem 0.7rem; border-radius: 999px;
+      font-size: 0.78rem; font-weight: 600; border: 1px solid transparent;
+    }
+    .stat-good { background: var(--success-dim); color: var(--success); border-color: rgba(61,186,122,0.25); }
+    .stat-partial { background: var(--warn-dim); color: var(--warn); border-color: rgba(230,184,74,0.25); }
+    .stat-fail { background: var(--error-dim); color: var(--error); border-color: rgba(224,108,108,0.25); }
+    .stat-muted { background: rgba(255,255,255,0.05); color: var(--muted); border-color: var(--border); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    thead th {
+      text-align: left; padding: 0.375rem 0.65rem;
+      color: var(--muted); font-weight: 500; font-size: 0.775rem;
+      text-transform: uppercase; letter-spacing: 0.045em;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr { transition: background 0.1s; }
+    tbody tr:hover { background: rgba(255,255,255,0.025); }
+    tbody td { padding: 0.65rem 0.65rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    .file-cell { max-width: 260px; }
+    .file-name { font-weight: 500; word-break: break-all; line-height: 1.4; }
+    .file-msg { font-size: 0.775rem; color: var(--muted); margin-top: 0.25rem; line-height: 1.45; }
+
     .badge {
       display: inline-flex; align-items: center; gap: 0.25rem;
-      padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.8rem;
+      padding: 0.22rem 0.55rem; border-radius: 999px;
+      font-size: 0.775rem; font-weight: 600; white-space: nowrap;
     }
-    .badge-good { background: rgba(61,186,122,0.2); color: var(--success); }
-    .badge-partial { background: rgba(230,184,74,0.2); color: var(--warn); }
-    .badge-fail { background: rgba(224,108,108,0.2); color: var(--error); }
-    .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
-    .btn {
-      display: inline-flex; align-items: center; gap: 0.35rem;
-      padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.9rem;
-      border: none; cursor: pointer; text-decoration: none;
+    .badge-good { background: var(--success-dim); color: var(--success); }
+    .badge-partial { background: var(--warn-dim); color: var(--warn); }
+    .badge-fail { background: var(--error-dim); color: var(--error); }
+    .badge-muted { background: rgba(255,255,255,0.06); color: var(--muted); }
+
+    /* ── Preview ── */
+    .preview-header {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0;
     }
-    .btn-primary { background: var(--primary); color: #0f1419; font-weight: 600; }
-    .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
-    .btn-link { background: none; border: none; color: var(--primary); cursor: pointer; padding: 0; font-size: inherit; }
-    .preview-body {
-      white-space: pre-wrap; font-family: system-ui, sans-serif;
-      font-size: 0.95rem; line-height: 1.6; max-height: 60vh; overflow: auto;
-      background: rgba(0,0,0,0.25); padding: 1rem; border-radius: 8px;
-      margin-top: 1rem;
+    .preview-header-left { display: flex; align-items: center; gap: 0.75rem; }
+    .preview-file-name { font-size: 0.9rem; font-weight: 600; word-break: break-all; }
+    .preview-actions { display: flex; gap: 0.5rem; }
+
+    .tab-bar {
+      display: flex; gap: 0; border-bottom: 1px solid var(--border);
+      margin: 1rem -1.75rem 0; padding: 0 1.75rem;
     }
-    .preview-body.warn { color: var(--warn); font-family: system-ui, sans-serif; }
-    .preview-body h1, .preview-body h2, .preview-body h3 { margin: 1rem 0 0.5rem; }
-    .preview-body p { margin: 0.5rem 0; }
-    .preview-body code { font-family: ui-monospace, monospace; background: rgba(0,0,0,0.3); padding: 0.1rem 0.3rem; border-radius: 4px; }
-    .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
-    .legal-notice { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); font-size: 0.8rem; line-height: 1.45; }
-    .muted-legal { color: var(--muted); }
+    .tab-btn {
+      background: none; border: none; cursor: pointer; font-family: inherit;
+      font-size: 0.8125rem; font-weight: 500; color: var(--muted);
+      padding: 0.45rem 0.85rem 0.6rem; border-bottom: 2px solid transparent;
+      margin-bottom: -1px; transition: color 0.1s, border-color 0.1s;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .preview-layout {
+      display: grid; grid-template-columns: 190px 1fr;
+      gap: 0; margin: 0 -1.75rem; border-top: 1px solid var(--border);
+    }
+    .preview-layout.no-sidebar { grid-template-columns: 1fr; }
+
+    .preview-sidebar {
+      border-right: 1px solid var(--border);
+      padding: 0.75rem 0; overflow-y: auto; max-height: 62vh;
+    }
+    .preview-sidebar-title {
+      font-size: 0.7rem; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.05em;
+      padding: 0 0.875rem 0.5rem;
+    }
+    .sidebar-file-btn {
+      width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+      font-family: inherit; padding: 0.45rem 0.875rem;
+      font-size: 0.8rem; color: var(--text-soft); word-break: break-all;
+      transition: background 0.1s, color 0.1s; line-height: 1.4;
+    }
+    .sidebar-file-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+    .sidebar-file-btn.active { background: var(--primary-dim); color: var(--primary); }
+
+    .preview-body-wrap { display: flex; flex-direction: column; min-height: 0; }
+    .preview-content {
+      padding: 1.25rem 1.5rem; overflow-y: auto; max-height: 62vh;
+      font-size: 0.9rem; line-height: 1.7;
+    }
+    .preview-content.rendered {}
+    .preview-content.raw {
+      font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 0.8125rem; line-height: 1.65; color: var(--text-soft);
+      white-space: pre-wrap; word-break: break-word;
+    }
+    /* Rendered Markdown styles */
+    .preview-content h1,
+    .preview-content h2,
+    .preview-content h3,
+    .preview-content h4 { margin: 1.2rem 0 0.45rem; font-weight: 700; line-height: 1.3; }
+    .preview-content h1 { font-size: 1.3rem; }
+    .preview-content h2 { font-size: 1.1rem; }
+    .preview-content h3 { font-size: 0.975rem; }
+    .preview-content h4 { font-size: 0.9rem; }
+    .preview-content p { margin: 0.55rem 0; }
+    .preview-content ul, .preview-content ol { padding-left: 1.5rem; margin: 0.5rem 0; }
+    .preview-content li { margin: 0.2rem 0; }
+    .preview-content blockquote {
+      margin: 0.75rem 0; padding: 0.5rem 1rem;
+      border-left: 3px solid var(--warn); border-radius: 0 var(--r-xs) var(--r-xs) 0;
+      background: var(--warn-dim); color: var(--warn);
+    }
+    .preview-content blockquote p { margin: 0; }
+    .preview-content code {
+      font-family: ui-monospace, monospace; font-size: 0.85em;
+      background: rgba(0,0,0,0.3); padding: 0.15rem 0.35rem;
+      border-radius: 4px; color: var(--text-soft);
+    }
+    .preview-content pre {
+      background: rgba(0,0,0,0.35); border: 1px solid var(--border);
+      border-radius: var(--r-xs); padding: 1rem; overflow-x: auto; margin: 0.75rem 0;
+    }
+    .preview-content pre code { background: none; padding: 0; font-size: 0.875rem; color: var(--text-soft); }
+    .preview-content table { margin: 0.75rem 0; font-size: 0.875rem; }
+    .preview-content th { background: rgba(255,255,255,0.04); }
+    .preview-content th, .preview-content td {
+      border: 1px solid var(--border); padding: 0.4rem 0.75rem;
+    }
+    .preview-content hr { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+    .preview-content a { color: var(--primary); }
+    .preview-content strong { font-weight: 700; }
+    .preview-content em { font-style: italic; }
+
+    .preview-warn { color: var(--warn); font-size: 0.875rem; line-height: 1.65; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+      background: rgba(20,38,58,0.96); border: 1px solid var(--border-strong);
+      color: var(--text); padding: 0.6rem 1.3rem; border-radius: 999px;
+      font-size: 0.875rem; font-weight: 500; backdrop-filter: blur(8px);
+      opacity: 1; transition: opacity 0.25s; pointer-events: none; z-index: 200;
+      white-space: nowrap;
+    }
+    .toast.hidden { opacity: 0; }
+
+    /* ── Utilities ── */
+    .hidden { display: none !important; }
+    .flex { display: flex; }
+    .items-center { align-items: center; }
+    .gap-sm { gap: 0.5rem; }
+
+    @media (max-width: 600px) {
+      .container { padding: 1.5rem 1rem 4rem; }
+      .card { padding: 1.25rem; }
+      .tab-bar { margin: 1rem -1.25rem 0; padding: 0 1.25rem; }
+      .preview-layout { margin: 0 -1.25rem; grid-template-columns: 1fr; }
+      .preview-sidebar { display: none; }
+      .preview-content { padding: 1rem 1.25rem; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
+<div class="container">
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="logo-mark" aria-hidden="true">⚡</div>
+    <div class="logo-text">
       <h1>AgentReady</h1>
-      <p class="subtitle">by HumanGoodAI</p>
-    </header>
+      <p>by HumanGoodAI</p>
+    </div>
+  </header>
 
-    <section id="view-upload" class="panel upload-panel">
-      <div id="file-drop-overlay" class="file-drop-overlay" aria-hidden="true">Drop files to upload</div>
-      <p class="tagline">Is your data agent ready?</p>
-      <p class="description">
-        Upload your files, preview clean Markdown, and download an agent-ready zip.
-        Everything runs on your machine — no cloud processing.
-      </p>
-      <label id="drop-zone" class="upload-zone" for="file-input" tabindex="0" role="button" aria-label="Upload files">
-        <h2>Upload your files</h2>
-        <p>Drag and drop anywhere here, or click to browse</p>
-      </label>
-      <input id="file-input" class="file-input-hidden" type="file" multiple
-        accept=".txt,.md,.markdown,.csv,.docx,.pdf,.epub,.mobi,.azw,.azw3,text/plain,text/markdown,text/csv,application/pdf,application/epub+zip,application/x-mobipocket-ebook,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
-      <div id="selected-files" class="selected-files empty">
-        <strong>Ready to convert:</strong>
-        <ul id="selected-files-list"></ul>
-      </div>
-      <div class="info">
-        <div><strong>Supported:</strong> TXT, Markdown, CSV, DOCX, PDF, EPUB, MOBI, AZW3, AZW (DRM-free ebooks you own)</div>
-        <div><strong>Limits:</strong> Up to 25 files, 50 MB each</div>
-        <div>Processed locally in Rust — nothing leaves your computer.</div>
-        <div><strong>iCloud files:</strong> If drag-and-drop fails, open the file once in Preview or copy it to Desktop first.</div>
-        <div class="legal-notice"><strong>Your files only.</strong> Upload content you own or are authorized to convert. Ebooks must be <strong>DRM-free</strong> — AgentReady cannot remove copy protection and will reject encrypted books.</div>
-        <div class="legal-notice muted-legal">AgentReady is a conversion tool. HumanGoodAI does not verify ownership or legality of uploads and accepts no responsibility for how you obtain or use converted content. You are solely responsible for copyright and licensing compliance. <a href="https://github.com/dman1313/agentreadymarkdown/blob/main/docs/23_CONTENT_OWNERSHIP_AND_LEGAL.md" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">Full notice</a></div>
-      </div>
-    </section>
+  <!-- Upload view -->
+  <section id="view-upload" class="card" aria-label="Upload files">
+    <div id="file-drop-overlay" class="drop-overlay" aria-hidden="true">⬇ Drop files to convert</div>
+    <p class="card-eyebrow">Document converter</p>
+    <h2 class="card-title">Is your data agent ready?</h2>
+    <p class="card-sub">Convert documents to clean Markdown — optimized for AI agents and LLM workflows. Runs entirely on your machine.</p>
 
-    <section id="view-converting" class="panel center hidden">
+    <label id="drop-zone" class="upload-zone" for="file-input"
+      tabindex="0" role="button" aria-label="Upload files — click or drag and drop">
+      <div class="upload-icon" aria-hidden="true">📂</div>
+      <h2>Drop your files here</h2>
+      <p>Drag &amp; drop, or click to browse</p>
+      <span class="kbd">Enter</span>
+    </label>
+    <input id="file-input" class="file-input-hidden" type="file" multiple
+      accept=".txt,.md,.markdown,.csv,.docx,.pdf,.epub,.mobi,.azw,.azw3" />
+
+    <div id="selected-files" class="selected-files empty">
+      <p class="files-label" style="margin-top:1.1rem">Ready to convert</p>
+      <ul id="selected-files-list" class="file-chips"></ul>
+    </div>
+
+    <div class="info-box">
+      <div class="info-row"><span><strong>Formats:</strong> TXT · Markdown · CSV · DOCX · PDF · EPUB · MOBI · AZW3</span></div>
+      <div class="info-row"><span><strong>Limits:</strong> Up to 25 files · 50 MB each · DRM-free ebooks only</span></div>
+      <div class="info-row"><span>Processed locally in Rust — nothing leaves your machine.</span></div>
+      <div class="info-row"><span><strong>iCloud tip:</strong> If drag-and-drop fails, open the file in Preview or copy it to Desktop first.</span></div>
+      <div class="info-legal">
+        <strong>Your files only.</strong> Upload content you own or are authorized to convert. DRM-protected ebooks are rejected automatically.
+        HumanGoodAI accepts no responsibility for your uploads or use of converted content.
+        <a href="https://github.com/dman1313/agentreadymarkdown/blob/main/docs/23_CONTENT_OWNERSHIP_AND_LEGAL.md" target="_blank" rel="noopener noreferrer">Full legal notice ↗</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Converting view -->
+  <section id="view-converting" class="card hidden" aria-live="polite" aria-label="Conversion in progress">
+    <div class="converting-wrap">
       <div class="spinner" aria-hidden="true"></div>
-      <h2>Converting…</h2>
-      <p id="convert-status">Starting</p>
-      <div class="progress-bar"><div id="progress-fill" style="width:0%"></div></div>
-    </section>
-
-    <section id="view-results" class="panel hidden">
-      <div class="flex-between">
-        <h2 style="margin:0">Results</h2>
-        <div class="actions">
-          <button type="button" class="btn btn-secondary" id="btn-start-over">Start over</button>
-          <a id="btn-download" class="btn btn-primary" href="#">Download zip</a>
-        </div>
+      <p class="spinner-title">Converting…</p>
+      <p id="convert-status" class="spinner-sub">Starting</p>
+      <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div id="progress-fill" class="progress-fill" style="width:0%"></div>
       </div>
-      <table>
-        <thead><tr><th>File</th><th>Type</th><th>Status</th><th></th></tr></thead>
-        <tbody id="results-body"></tbody>
-      </table>
-    </section>
+    </div>
+  </section>
 
-    <section id="view-preview" class="panel hidden">
-      <div class="flex-between">
-        <h2 id="preview-title" style="margin:0">Markdown preview</h2>
-        <div class="actions">
-          <button type="button" class="btn btn-secondary" id="btn-back-results">Back</button>
-          <button type="button" class="btn btn-secondary" id="btn-copy">Copy Markdown</button>
-        </div>
+  <!-- Results view -->
+  <section id="view-results" class="card hidden" aria-label="Conversion results">
+    <div class="results-top">
+      <h2>Results</h2>
+      <div class="header-actions">
+        <button type="button" class="btn btn-secondary" id="btn-start-over">Start over</button>
+        <a id="btn-download" class="btn btn-primary" href="#">⬇ Download zip</a>
       </div>
-      <div id="preview-content" class="preview-body"></div>
-    </section>
-  </div>
-  <script>
-    const $ = (id) => document.getElementById(id);
-    const views = ['upload', 'converting', 'results', 'preview'];
-    let jobId = null;
-    let pollTimer = null;
-    let lastResult = null;
-    let previewMarkdown = '';
+    </div>
+    <div id="stats-row" class="stats-row"></div>
+    <table aria-label="Converted files">
+      <thead>
+        <tr><th>File</th><th>Type</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody id="results-body"></tbody>
+    </table>
+  </section>
 
-    function showView(name) {
-      views.forEach((v) => $('view-' + v).classList.toggle('hidden', v !== name));
-    }
+  <!-- Preview view -->
+  <section id="view-preview" class="card hidden" aria-label="File preview">
+    <div class="preview-header">
+      <div class="preview-header-left">
+        <button type="button" class="btn btn-secondary" id="btn-back-results">← Back</button>
+        <span id="preview-title" class="preview-file-name"></span>
+      </div>
+      <div class="preview-actions">
+        <button type="button" class="btn btn-secondary" id="btn-copy">Copy</button>
+      </div>
+    </div>
+    <div class="tab-bar">
+      <button type="button" class="tab-btn active" id="tab-rendered" aria-selected="true">Rendered</button>
+      <button type="button" class="tab-btn" id="tab-raw" aria-selected="false">Raw Markdown</button>
+    </div>
+    <div class="preview-layout" id="preview-layout">
+      <nav id="preview-sidebar" class="preview-sidebar" aria-label="Files">
+        <p class="preview-sidebar-title">Files</p>
+        <div id="preview-file-list"></div>
+      </nav>
+      <div class="preview-body-wrap">
+        <div id="preview-rendered" class="preview-content rendered"></div>
+        <div id="preview-raw" class="preview-content raw hidden"></div>
+      </div>
+    </div>
+  </section>
 
-    const dropZone = $('drop-zone');
-    const uploadPanel = $('view-upload');
-    const dropOverlay = $('file-drop-overlay');
-    const fileInput = $('file-input');
-    const selectedFilesBox = $('selected-files');
-    const selectedFilesList = $('selected-files-list');
+</div>
+<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
-    function isUploadView() {
-      return !uploadPanel.classList.contains('hidden');
-    }
+<script>
+  /* ── State ── */
+  const $ = (id) => document.getElementById(id);
+  const VIEWS = ['upload','converting','results','preview'];
+  let jobId = null, pollTimer = null, lastResult = null;
+  let previewMarkdown = '', previewFiles = [];
 
-    function dragHasFiles(dt) {
-      if (!dt || !dt.types) return false;
-      return Array.from(dt.types).some((t) =>
-        t === 'Files' || t === 'application/x-moz-file' || t === 'public.file-url'
-      );
-    }
+  /* ── Views ── */
+  function showView(name) {
+    VIEWS.forEach((v) => $('view-' + v).classList.toggle('hidden', v !== name));
+  }
 
-    // Must read synchronously inside the drop event — do not defer.
-    function filesFromDataTransfer(dt) {
-      if (!dt) return [];
-      const out = [];
-      if (dt.items && dt.items.length) {
-        for (let i = 0; i < dt.items.length; i++) {
-          const item = dt.items[i];
-          if (item.kind === 'file') {
-            const f = item.getAsFile();
-            if (f) out.push(f);
-          }
-        }
+  /* ── Toast ── */
+  let toastTimer = null;
+  function toast(msg, ms = 2200) {
+    const el = $('toast');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.add('hidden'), ms);
+  }
+
+  /* ── Upload / Drag ── */
+  const dropZone = $('drop-zone');
+  const uploadPanel = $('view-upload');
+  const dropOverlay = $('file-drop-overlay');
+  const fileInput = $('file-input');
+
+  function isUploadView() { return !uploadPanel.classList.contains('hidden'); }
+
+  function dragHasFiles(dt) {
+    if (!dt || !dt.types) return false;
+    return Array.from(dt.types).some((t) => t === 'Files' || t === 'application/x-moz-file' || t === 'public.file-url');
+  }
+
+  function filesFromDT(dt) {
+    if (!dt) return [];
+    const out = [];
+    if (dt.items && dt.items.length) {
+      for (let i = 0; i < dt.items.length; i++) {
+        if (dt.items[i].kind === 'file') { const f = dt.items[i].getAsFile(); if (f) out.push(f); }
       }
-      if (!out.length && dt.files && dt.files.length) {
-        return Array.from(dt.files);
-      }
-      return out;
     }
+    if (!out.length && dt.files) return Array.from(dt.files);
+    return out;
+  }
 
-    function setDragActive(on) {
-      dropZone.classList.toggle('drag-active', on);
-      uploadPanel.classList.toggle('drag-active', on);
-      dropOverlay.classList.toggle('active', on);
-      dropOverlay.setAttribute('aria-hidden', on ? 'false' : 'true');
-    }
+  function setDragActive(on) {
+    dropZone.classList.toggle('drag-active', on);
+    dropOverlay.classList.toggle('active', on);
+    dropOverlay.setAttribute('aria-hidden', on ? 'false' : 'true');
+  }
 
-    function showSelectedFiles(files) {
-      selectedFilesList.innerHTML = files.map((f) =>
-        '<li>' + escapeHtml(f.name) + ' (' + formatSize(f.size) + ')</li>'
-      ).join('');
-      selectedFilesBox.classList.toggle('empty', files.length === 0);
-    }
+  function fileExt(name) { return name.split('.').pop().toLowerCase(); }
 
-    function formatSize(bytes) {
-      if (bytes < 1024) return bytes + ' B';
-      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-    }
+  function fileIcon(name) {
+    const m = { pdf:'📄', docx:'📝', doc:'📝', csv:'📊', txt:'📃', md:'📋', markdown:'📋', epub:'📚', mobi:'📚', azw:'📚', azw3:'📚' };
+    return m[fileExt(name)] || '📄';
+  }
 
-    function validateFiles(files) {
-      const empty = files.filter((f) => f.size === 0);
-      if (empty.length) {
-        return 'File(s) are empty (0 bytes): ' + empty.map((f) => f.name).join(', ') +
-          '. If stored in iCloud, open in Preview or copy to Desktop first, then try again.';
-      }
-      const limit = 50 * 1024 * 1024;
-      const huge = files.filter((f) => f.size > limit);
-      if (huge.length) {
-        return 'File(s) over 50 MB: ' + huge.map((f) => f.name + ' (' + formatSize(f.size) + ')').join(', ');
-      }
-      return null;
-    }
+  function fmtSize(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+    return (b / 1048576).toFixed(1) + ' MB';
+  }
 
-    function processDrop(e) {
-      if (!isUploadView()) return;
-      e.preventDefault();
-      e.stopPropagation();
-      setDragActive(false);
-      const files = filesFromDataTransfer(e.dataTransfer);
-      if (!files.length) {
-        alert('No files detected in drop. If you dropped a folder, select the files inside it instead.');
-        return;
-      }
-      const err = validateFiles(files);
-      if (err) { alert(err); return; }
-      showSelectedFiles(files);
-      upload(files);
-    }
+  function showSelected(files) {
+    $('selected-files-list').innerHTML = files.map((f) =>
+      `<li class="file-chip"><span>${fileIcon(f.name)}</span><span>${esc(f.name)}</span><span class="file-chip-size">${fmtSize(f.size)}</span></li>`
+    ).join('');
+    $('selected-files').classList.toggle('empty', !files.length);
+  }
 
-    function allowDrag(e) {
-      if (!isUploadView() || !dragHasFiles(e.dataTransfer)) return;
-      e.preventDefault();
-      e.stopPropagation();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
-      setDragActive(true);
-    }
+  function validate(files) {
+    const empty = files.filter((f) => f.size === 0);
+    if (empty.length) return 'File(s) are empty (0 bytes): ' + empty.map((f) => f.name).join(', ') + '\n\nIf stored in iCloud, open in Preview or copy to Desktop first.';
+    const big = files.filter((f) => f.size > 52428800);
+    if (big.length) return 'File(s) exceed 50 MB: ' + big.map((f) => f.name + ' (' + fmtSize(f.size) + ')').join(', ');
+    return null;
+  }
 
-    dropZone.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
-    });
+  function processDrop(e) {
+    if (!isUploadView()) return;
+    e.preventDefault(); e.stopPropagation();
+    setDragActive(false);
+    const files = filesFromDT(e.dataTransfer);
+    if (!files.length) { alert('No files detected. If you dropped a folder, select files inside it instead.'); return; }
+    const err = validate(files);
+    if (err) { alert(err); return; }
+    showSelected(files);
+    upload(files);
+  }
 
-    // Bind on overlay + panel + window (capture). Do NOT hide on dragleave — it fires before drop.
-    [dropOverlay, uploadPanel, dropZone, window].forEach((el) => {
-      el.addEventListener('dragenter', allowDrag, true);
-      el.addEventListener('dragover', allowDrag, true);
-      el.addEventListener('drop', processDrop, true);
-    });
-    window.addEventListener('dragend', () => setDragActive(false), true);
+  function allowDrag(e) {
+    if (!isUploadView() || !dragHasFiles(e.dataTransfer)) return;
+    e.preventDefault(); e.stopPropagation();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    setDragActive(true);
+  }
 
-    fileInput.addEventListener('change', () => {
-      if (fileInput.files && fileInput.files.length) {
-        const files = Array.from(fileInput.files);
-        const err = validateFiles(files);
-        if (err) { alert(err); fileInput.value = ''; return; }
-        showSelectedFiles(files);
-        upload(files);
-      }
-    });
+  dropZone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+  [dropOverlay, uploadPanel, dropZone, window].forEach((el) => {
+    el.addEventListener('dragenter', allowDrag, true);
+    el.addEventListener('dragover', allowDrag, true);
+    el.addEventListener('drop', processDrop, true);
+  });
+  window.addEventListener('dragend', () => setDragActive(false), true);
 
-    async function upload(files) {
-      const err = validateFiles(files);
-      if (err) { alert(err); showView('upload'); return; }
+  fileInput.addEventListener('change', () => {
+    if (!fileInput.files || !fileInput.files.length) return;
+    const files = Array.from(fileInput.files);
+    const err = validate(files);
+    if (err) { alert(err); fileInput.value = ''; return; }
+    showSelected(files);
+    upload(files);
+  });
 
-      // Build FormData immediately while File refs are still valid
-      const fd = new FormData();
-      const names = [];
-      for (const f of files) {
-        fd.append('file', f, f.name);
-        names.push(f.name + ' (' + formatSize(f.size) + ')');
-      }
+  /* ── Upload & Poll ── */
+  async function upload(files) {
+    const fd = new FormData();
+    for (const f of files) fd.append('file', f, f.name);
+    showView('converting');
+    $('convert-status').textContent = `Uploading ${files.length} file${files.length > 1 ? 's' : ''}…`;
+    $('progress-fill').style.width = '0%';
+    try {
+      const res = await fetch('/api/jobs', { method: 'POST', body: fd });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText); }
+      const data = await res.json();
+      jobId = data.id;
+      poll();
+    } catch (e) { alert('Upload failed: ' + e.message); showView('upload'); }
+  }
 
-      showView('converting');
-      $('convert-status').textContent = 'Uploading ' + names.join(', ') + '…';
-      $('progress-fill').style.width = '0%';
+  function poll() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(async () => {
       try {
-        const res = await fetch('/api/jobs', { method: 'POST', body: fd });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || res.statusText);
+        const data = await fetch('/api/jobs/' + jobId).then((r) => r.json());
+        if (data.status === 'Converting' && data.progress) {
+          const { done, total, current_file } = data.progress;
+          const pct = total ? Math.round((done / total) * 100) : 0;
+          const fill = $('progress-fill');
+          fill.style.width = pct + '%';
+          fill.closest('[role=progressbar]').setAttribute('aria-valuenow', pct);
+          $('convert-status').textContent = current_file
+            ? `Processing ${current_file} (${done} of ${total})`
+            : `Processing… (${done} of ${total})`;
         }
-        const data = await res.json();
-        jobId = data.id;
-        pollJob();
-      } catch (e) {
-        alert('Upload failed: ' + e.message);
-        showView('upload');
-      }
-    }
-
-    function pollJob() {
-      if (pollTimer) clearInterval(pollTimer);
-      pollTimer = setInterval(async () => {
-        try {
-          const res = await fetch('/api/jobs/' + jobId);
-          const data = await res.json();
-          if (data.status === 'Converting' && data.progress) {
-            const { done, total, current_file } = data.progress;
-            const pct = total ? Math.round((done / total) * 100) : 0;
-            $('progress-fill').style.width = pct + '%';
-            $('convert-status').textContent = current_file
-              ? `Processing ${current_file} (${done}/${total})`
-              : `Processing (${done}/${total})`;
-          }
-          if (data.status === 'Completed') {
-            clearInterval(pollTimer);
-            lastResult = data.result;
-            renderResults(data.result);
-            showView('results');
-          }
-          if (data.status === 'Failed') {
-            clearInterval(pollTimer);
-            alert(data.error || 'Conversion failed');
-            showView('upload');
-          }
-        } catch (e) {
-          console.error(e);
+        if (data.status === 'Completed') {
+          clearInterval(pollTimer);
+          lastResult = data.result;
+          renderResults(data.result);
+          showView('results');
         }
-      }, 400);
-    }
+        if (data.status === 'Failed') {
+          clearInterval(pollTimer);
+          alert(data.error || 'Conversion failed.');
+          showView('upload');
+        }
+      } catch (e) { console.error(e); }
+    }, 400);
+  }
 
-    function badge(status) {
-      if (status === 'good') return '<span class="badge badge-good">Good</span>';
-      if (status === 'partial') return '<span class="badge badge-partial">Partial</span>';
-      return '<span class="badge badge-fail">Failed</span>';
-    }
+  /* ── Results ── */
+  function badge(status) {
+    const cfg = {
+      good:        { cls: 'badge-good',    icon: '✓', label: 'Good' },
+      partial:     { cls: 'badge-partial', icon: '⚠', label: 'Partial' },
+      failed:      { cls: 'badge-fail',    icon: '✕', label: 'Failed' },
+      unsupported: { cls: 'badge-muted',   icon: '—', label: 'Unsupported' },
+      cancelled:   { cls: 'badge-fail',    icon: '✕', label: 'Cancelled' },
+    };
+    const c = cfg[status] || cfg.failed;
+    return `<span class="badge ${c.cls}"><span aria-hidden="true">${c.icon}</span>${c.label}</span>`;
+  }
 
-    function renderResults(result) {
-      const tbody = $('results-body');
-      tbody.innerHTML = '';
-      $('btn-download').href = '/api/jobs/' + jobId + '/download';
-      for (const f of result.files) {
-        const tr = document.createElement('tr');
-        const canPreview = f.output_file && (f.status === 'good' || f.status === 'partial');
-        tr.innerHTML =
-          '<td>' + escapeHtml(f.source_file) + '</td>' +
-          '<td>' + escapeHtml(f.source_type) + '</td>' +
-          '<td>' + badge(f.status) + '</td>' +
-          '<td>' + (canPreview
-            ? '<button type="button" class="btn-link" data-out="' + encodeAttr(f.output_file) + '" data-name="' + encodeAttr(f.source_file) + '">Preview</button>'
-            : '—') + '</td>';
-        tbody.appendChild(tr);
-      }
-      tbody.querySelectorAll('[data-out]').forEach((btn) => {
-        btn.addEventListener('click', () => preview(btn.dataset.out, btn.dataset.name));
-      });
-    }
+  function renderStats(files) {
+    const c = { good: 0, partial: 0, failed: 0, unsupported: 0, cancelled: 0 };
+    for (const f of files) c[f.status] = (c[f.status] || 0) + 1;
+    const chips = [];
+    if (c.good)      chips.push(`<span class="stat-chip stat-good">✓ ${c.good} converted</span>`);
+    if (c.partial)   chips.push(`<span class="stat-chip stat-partial">⚠ ${c.partial} partial</span>`);
+    const totalFail = (c.failed || 0) + (c.cancelled || 0);
+    if (totalFail)   chips.push(`<span class="stat-chip stat-fail">✕ ${totalFail} failed</span>`);
+    if (c.unsupported) chips.push(`<span class="stat-chip stat-muted">— ${c.unsupported} unsupported</span>`);
+    $('stats-row').innerHTML = chips.join('');
+  }
 
-    function looksLikeGarbage(text) {
-      if (!text || text.length < 20) return false;
-      const sample = text.slice(0, 4000);
-      let good = 0;
-      for (const ch of sample) {
-        if (/[\n\r\t ]/.test(ch) || /[a-zA-Z0-9]/.test(ch)) good++;
-        else if (/[.,;:!?\-_()[\]{}#*|/\\'"%&@+=<>]/.test(ch)) good++;
-      }
-      return good / sample.length < 0.55;
-    }
+  function renderResults(result) {
+    $('btn-download').href = '/api/jobs/' + jobId + '/download';
+    renderStats(result.files);
+    previewFiles = result.files
+      .filter((f) => f.output_file && (f.status === 'good' || f.status === 'partial'))
+      .map((f) => ({ name: f.source_file, out: f.output_file }));
 
-    function renderPreviewMarkdown(text) {
-      const escaped = escapeHtml(text);
-      return escaped
-        .split('\n')
-        .map((line) => {
-          const t = line.trim();
-          if (t === '---') return '<hr>';
-          if (t.startsWith('<!--') && t.endsWith('-->')) return '';
-          if (/^###### (.+)/.test(line)) return '<h6>' + line.slice(7) + '</h6>';
-          if (/^##### (.+)/.test(line)) return '<h5>' + line.slice(6) + '</h5>';
-          if (/^#### (.+)/.test(line)) return '<h4>' + line.slice(5) + '</h4>';
-          if (/^### (.+)/.test(line)) return '<h3>' + line.slice(4) + '</h3>';
-          if (/^## (.+)/.test(line)) return '<h2>' + line.slice(3) + '</h2>';
-          if (/^# (.+)/.test(line)) return '<h1>' + line.slice(2) + '</h1>';
-          if (t === '') return '';
-          if (/^> (.+)/.test(line)) return '<blockquote><p>' + line.slice(2) + '</p></blockquote>';
-          if (/^[-*] (.+)/.test(line)) return '<li>' + line.replace(/^[-*] /, '') + '</li>';
-          if (/^\d+\. (.+)/.test(line)) return '<li>' + line.replace(/^\d+\. /, '') + '</li>';
-          return '<p>' + line + '</p>';
-        })
-        .join('');
+    const tbody = $('results-body');
+    tbody.innerHTML = '';
+    for (const f of result.files) {
+      const canP = f.output_file && (f.status === 'good' || f.status === 'partial');
+      const msgHtml = f.user_message ? `<div class="file-msg">${esc(f.user_message)}</div>` : '';
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        `<td class="file-cell"><div class="file-name">${fileIcon(f.source_file)} ${esc(f.source_file)}</div>${msgHtml}</td>` +
+        `<td>${esc(f.source_type.toUpperCase())}</td>` +
+        `<td>${badge(f.status)}</td>` +
+        `<td>${canP ? `<button class="btn btn-ghost" data-out="${encAttr(f.output_file)}" data-name="${encAttr(f.source_file)}">Preview</button>` : '—'}</td>`;
+      tbody.appendChild(tr);
     }
+    tbody.querySelectorAll('[data-out]').forEach((btn) => {
+      btn.addEventListener('click', () => openPreview(btn.dataset.out, btn.dataset.name));
+    });
+  }
 
-    async function preview(outputFile, name) {
+  /* ── Preview ── */
+  function buildSidebar(activeOut) {
+    const layout = $('preview-layout');
+    const sidebar = $('preview-sidebar');
+    if (previewFiles.length <= 1) {
+      layout.classList.add('no-sidebar');
+      sidebar.style.display = 'none';
+      return;
+    }
+    layout.classList.remove('no-sidebar');
+    sidebar.style.display = '';
+    $('preview-file-list').innerHTML = previewFiles.map((f) =>
+      `<button class="sidebar-file-btn ${f.out === activeOut ? 'active' : ''}"
+        data-out="${encAttr(f.out)}" data-name="${encAttr(f.name)}">${esc(f.name)}</button>`
+    ).join('');
+    $('preview-file-list').querySelectorAll('[data-out]').forEach((btn) => {
+      btn.addEventListener('click', () => openPreview(btn.dataset.out, btn.dataset.name));
+    });
+  }
+
+  async function openPreview(outputFile, name) {
+    try {
       const q = new URLSearchParams({ path: outputFile });
-      const res = await fetch('/api/jobs/' + jobId + '/preview?' + q);
-      const text = await res.text();
+      const text = await fetch('/api/jobs/' + jobId + '/preview?' + q).then((r) => r.text());
       previewMarkdown = text;
       $('preview-title').textContent = name;
-      const el = $('preview-content');
+      buildSidebar(outputFile);
       if (looksLikeGarbage(text)) {
         previewMarkdown = '';
-        el.className = 'preview-body warn';
-        el.textContent =
-          'AgentReady could not show readable Markdown for this file.\n\n' +
-          'Common causes: scanned/image PDF, complex layout, or encrypted content. V1 has no OCR.\n\n' +
-          'Try re-exporting as TXT or DOCX from the original app, then upload again.';
+        $('preview-rendered').innerHTML =
+          '<p class="preview-warn">AgentReady could not display readable text for this file.\n\nCommon causes: scanned PDF (no text layer), complex layout, or encrypted content.\n\nTry re-exporting as TXT or DOCX from the original app.</p>';
+        $('preview-raw').textContent = text;
       } else {
-        el.className = 'preview-body';
-        el.innerHTML = renderPreviewMarkdown(text);
+        $('preview-rendered').innerHTML = renderMd(text);
+        $('preview-raw').textContent = text;
       }
+      setTab('rendered');
       showView('preview');
+    } catch (e) { alert('Preview failed: ' + e.message); }
+  }
+
+  function setTab(t) {
+    $('tab-rendered').classList.toggle('active', t === 'rendered');
+    $('tab-rendered').setAttribute('aria-selected', t === 'rendered');
+    $('tab-raw').classList.toggle('active', t === 'raw');
+    $('tab-raw').setAttribute('aria-selected', t === 'raw');
+    $('preview-rendered').classList.toggle('hidden', t !== 'rendered');
+    $('preview-raw').classList.toggle('hidden', t !== 'raw');
+  }
+
+  $('tab-rendered').addEventListener('click', () => setTab('rendered'));
+  $('tab-raw').addEventListener('click', () => setTab('raw'));
+  $('btn-back-results').addEventListener('click', () => showView('results'));
+
+  $('btn-copy').addEventListener('click', async () => {
+    if (!previewMarkdown) return;
+    try { await navigator.clipboard.writeText(previewMarkdown); toast('✓ Copied to clipboard'); }
+    catch { toast('Copy failed — select the raw text manually'); }
+  });
+
+  $('btn-start-over').addEventListener('click', async () => {
+    if (!confirm('Start over? The current export will be deleted.')) return;
+    if (jobId) await fetch('/api/jobs/' + jobId, { method: 'DELETE' }).catch(() => {});
+    jobId = null; lastResult = null; previewFiles = []; previewMarkdown = '';
+    fileInput.value = ''; showSelected([]); showView('upload');
+  });
+
+  /* ── Markdown renderer ── */
+  function looksLikeGarbage(text) {
+    if (!text || text.length < 20) return false;
+    const s = text.slice(0, 4000); let good = 0;
+    for (const ch of s) {
+      if (/[\n\r\t a-zA-Z0-9]/.test(ch) || /[.,;:!?\-_()[\]{}#*|/\\'"%&@+=<>]/.test(ch)) good++;
+    }
+    return good / s.length < 0.55;
+  }
+
+  function inlineMd(raw) {
+    // Extract code spans first, then process inline formatting on remaining text
+    const parts = [];
+    let last = 0;
+    const codeRe = /`([^`]+)`/g;
+    let m;
+    while ((m = codeRe.exec(raw)) !== null) {
+      if (m.index > last) parts.push({ t: 'text', v: raw.slice(last, m.index) });
+      parts.push({ t: 'code', v: m[1] });
+      last = m.index + m[0].length;
+    }
+    if (last < raw.length) parts.push({ t: 'text', v: raw.slice(last) });
+
+    return parts.map((p) => {
+      if (p.t === 'code') return `<code>${esc(p.v)}</code>`;
+      let s = esc(p.v);
+      s = s.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      s = s.replace(/__(.+?)__/g, '<strong>$1</strong>');
+      s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      s = s.replace(/_(.+?)_/g, '<em>$1</em>');
+      s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" rel="noopener noreferrer">$1</a>');
+      return s;
+    }).join('');
+  }
+
+  function renderMd(md) {
+    const lines = md.split('\n');
+    const out = [];
+    let i = 0;
+
+    while (i < lines.length) {
+      const line = lines[i];
+      const t = line.trim();
+
+      // Fenced code block
+      if (t.startsWith('```')) {
+        const lang = t.slice(3).trim();
+        const codeLines = []; i++;
+        while (i < lines.length && !lines[i].trim().startsWith('```')) { codeLines.push(esc(lines[i])); i++; }
+        out.push(`<pre><code>${codeLines.join('\n')}</code></pre>`);
+        i++; continue;
+      }
+
+      // Table (header | sep | rows)
+      if (t.startsWith('|') && i + 1 < lines.length && /^\|[\s\-|:]+\|/.test(lines[i + 1].trim())) {
+        const heads = parseCells(t);
+        i += 2;
+        const rows = [];
+        while (i < lines.length && lines[i].trim().startsWith('|')) { rows.push(parseCells(lines[i].trim())); i++; }
+        out.push('<table><thead><tr>' + heads.map((h) => `<th>${inlineMd(h)}</th>`).join('') + '</tr></thead>');
+        out.push('<tbody>' + rows.map((r) => '<tr>' + r.map((c) => `<td>${inlineMd(c)}</td>`).join('') + '</tr>').join('') + '</tbody></table>');
+        continue;
+      }
+
+      // Heading
+      const hm = t.match(/^(#{1,6})\s+(.+)/);
+      if (hm) { const lv = hm[1].length; out.push(`<h${lv}>${inlineMd(hm[2])}</h${lv}>`); i++; continue; }
+
+      // HR
+      if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) { out.push('<hr>'); i++; continue; }
+
+      // Blockquote
+      if (t.startsWith('> ') || t === '>') {
+        const bq = [];
+        while (i < lines.length && (lines[i].trim().startsWith('>') || lines[i].trim() === '>')) {
+          bq.push(lines[i].replace(/^>\s?/, '')); i++;
+        }
+        out.push(`<blockquote><p>${inlineMd(bq.join(' ').trim())}</p></blockquote>`);
+        continue;
+      }
+
+      // Unordered list
+      if (/^[-*+] /.test(t)) {
+        out.push('<ul>');
+        while (i < lines.length && /^[-*+] /.test(lines[i].trim())) {
+          out.push(`<li>${inlineMd(lines[i].trim().replace(/^[-*+] /, ''))}</li>`); i++;
+        }
+        out.push('</ul>'); continue;
+      }
+
+      // Ordered list
+      if (/^\d+\. /.test(t)) {
+        out.push('<ol>');
+        while (i < lines.length && /^\d+\. /.test(lines[i].trim())) {
+          out.push(`<li>${inlineMd(lines[i].trim().replace(/^\d+\. /, ''))}</li>`); i++;
+        }
+        out.push('</ol>'); continue;
+      }
+
+      // Empty line
+      if (t === '') { i++; continue; }
+
+      // Paragraph (gather continuation lines)
+      const para = [];
+      while (i < lines.length) {
+        const lt = lines[i].trim();
+        if (lt === '' || /^(#{1,6} |>|[-*+] |\d+\. |```|-{3,}|\*{3,}|\|)/.test(lt)) break;
+        para.push(lines[i]); i++;
+      }
+      if (para.length) out.push(`<p>${inlineMd(para.join(' ').trim())}</p>`);
     }
 
-    $('btn-back-results').addEventListener('click', () => showView('results'));
-    $('btn-copy').addEventListener('click', async () => {
-      if (!previewMarkdown) return;
-      await navigator.clipboard.writeText(previewMarkdown);
-      $('btn-copy').textContent = 'Copied';
-      setTimeout(() => { $('btn-copy').textContent = 'Copy Markdown'; }, 1500);
-    });
-    $('btn-start-over').addEventListener('click', async () => {
-      if (!confirm('Start over? Current export will be deleted.')) return;
-      if (jobId) await fetch('/api/jobs/' + jobId, { method: 'DELETE' }).catch(() => {});
-      jobId = null;
-      lastResult = null;
-      fileInput.value = '';
-      showSelectedFiles([]);
-      showView('upload');
-    });
+    return out.join('\n');
+  }
 
-    function escapeHtml(s) {
-      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-    function encodeAttr(s) { return String(s).replace(/"/g, '&quot;'); }
-  </script>
+  function parseCells(row) {
+    return row.split('|').slice(1, -1).map((c) => c.trim());
+  }
+
+  /* ── Helpers ── */
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+  function encAttr(s) { return String(s).replace(/"/g, '&quot;'); }
+</script>
 </body>
 </html>

@@ -35,3 +35,21 @@ Latest decisions: `docs/21_DECISIONS_Q107_Q261.md` and `docs/22_DECISIONS_EDGE_C
 - Converters return `Result<ConversionResult, AgentReadyError>`
 - Export writes folder + zip; frontmatter in export layer only
 - Web server calls `job::run_job` in-process (not a child CLI process)
+
+## gstack
+
+The [gstack](https://github.com/garrytan/gstack) skill suite is installed.
+
+- **Web browsing:** Use the `/browse` skill from gstack for all web browsing.
+  Never use `mcp__claude-in-chrome__*` tools.
+
+### Available skills
+
+`/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`,
+`/design-consultation`, `/design-shotgun`, `/design-html`, `/review`, `/ship`,
+`/land-and-deploy`, `/canary`, `/benchmark`, `/browse`, `/connect-chrome`,
+`/qa`, `/qa-only`, `/design-review`, `/setup-browser-cookies`, `/setup-deploy`,
+`/setup-gbrain`, `/retro`, `/investigate`, `/document-release`,
+`/document-generate`, `/codex`, `/cso`, `/autoplan`, `/plan-devex-review`,
+`/devex-review`, `/careful`, `/freeze`, `/guard`, `/unfreeze`,
+`/gstack-upgrade`, `/learn`

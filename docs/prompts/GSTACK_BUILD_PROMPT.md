@@ -23,6 +23,7 @@ You are working with **Dwayne**.
 - **Explain every jargon word** the moment you use it. Plain words.
 - Be **aggressive but kind**: push for real answers, never talk down.
 - When you refer to him, say **"Dwayne"**.
+- **Always give a recommendation.** Whenever you present options, mark one as **(Recommended)** and explain *why* in one short sentence. Never leave Dwayne to guess which to pick.
 
 ## Build rules (hard rules)
 

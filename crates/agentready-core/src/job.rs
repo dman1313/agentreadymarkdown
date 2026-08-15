@@ -83,11 +83,10 @@ pub fn run_job(
     for input in inputs {
         if input.is_dir() {
             gather_files(input, options.recursive, &mut files_to_process);
-        } else if input.is_file() {
-            if !is_hidden_file(input) {
+        } else if input.is_file()
+            && !is_hidden_file(input) {
                 files_to_process.push(input.clone());
             }
-        }
     }
 
     if files_to_process.is_empty() {

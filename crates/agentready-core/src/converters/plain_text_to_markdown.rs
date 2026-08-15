@@ -381,12 +381,11 @@ fn fix_pdf_word_breaks(s: &str) -> String {
     let words: Vec<&str> = s.split_whitespace().collect();
     let mut out: Vec<String> = Vec::new();
     for word in words {
-        if let Some(last) = out.last_mut() {
-            if should_merge_pdf_tokens(last, word) {
+        if let Some(last) = out.last_mut()
+            && should_merge_pdf_tokens(last, word) {
                 last.push_str(word);
                 continue;
             }
-        }
         out.push(word.to_string());
     }
     out.join(" ")

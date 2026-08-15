@@ -9,14 +9,15 @@ pub fn readable_text_ratio(text: &str) -> f64 {
     let mut total = 0usize;
     for ch in sample.chars() {
         total += 1;
-        if ch.is_ascii_alphanumeric() || matches!(ch, ' ' | '\n' | '\r' | '\t') {
-            good += 1;
-        } else if matches!(
-            ch,
-            '.' | ',' | ';' | ':' | '!' | '?' | '-' | '_' | '(' | ')' | '[' | ']'
-                | '{' | '}' | '#' | '*' | '|' | '/' | '\\' | '\'' | '"' | '%' | '&' | '@'
-                | '+' | '=' | '<' | '>'
-        ) {
+        if ch.is_ascii_alphanumeric()
+            || matches!(ch, ' ' | '\n' | '\r' | '\t')
+            || matches!(
+                ch,
+                '.' | ',' | ';' | ':' | '!' | '?' | '-' | '_' | '(' | ')' | '[' | ']'
+                    | '{' | '}' | '#' | '*' | '|' | '/' | '\\' | '\'' | '"' | '%' | '&' | '@'
+                    | '+' | '=' | '<' | '>'
+            )
+        {
             good += 1;
         }
     }

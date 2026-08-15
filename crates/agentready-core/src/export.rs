@@ -110,11 +110,10 @@ pub fn create_export(
         if res.result.user_message.is_none() {
             if let Some(ref code) = res.result.error_code {
                 res.result.user_message = Some(code.user_message().to_string());
-            } else if res.result.status == FileStatus::Partial {
-                if let Some(ref w) = res.result.warning {
+            } else if res.result.status == FileStatus::Partial
+                && let Some(ref w) = res.result.warning {
                     res.result.user_message = Some(format!("This file was converted, but the output may need review: {}", w));
                 }
-            }
         }
         export_files.push(res.result);
     }

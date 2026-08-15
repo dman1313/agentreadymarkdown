@@ -234,7 +234,7 @@ fn run_job_blocking(handle: Arc<JobHandle>) {
     };
 
     let result = job::run_job(
-        &[handle.input_dir.clone()],
+        std::slice::from_ref(&handle.input_dir),
         &handle.output_dir,
         &options,
         Some(&mut progress_fn),

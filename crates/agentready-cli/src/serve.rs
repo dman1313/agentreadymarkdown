@@ -147,7 +147,7 @@ async fn create_job(
 
         if !matches!(
             ext.as_str(),
-            "txt" | "md" | "csv" | "docx" | "pdf" | "epub" | "mobi" | "azw3" | "azw"
+            "txt" | "md" | "markdown" | "csv" | "docx" | "pdf" | "epub" | "mobi" | "azw3" | "azw"
         ) {
             skipped_type += 1;
             continue;
